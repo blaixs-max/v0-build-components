@@ -2,6 +2,12 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useAuth } from "./auth-context"
+import {
+  sendOfferToFirestore,
+  subscribeToMyOffers,
+  subscribeToReceivedOffers,
+  updateOfferInFirestore,
+} from "@/lib/firestore"
 
 export interface Offer {
   id: string
@@ -9,7 +15,8 @@ export interface Offer {
   listingTitle: string
   offerAmount: number
   offererName: string
-  offererId: string
+  offererId: string   // Firebase UID
+  sellerId?: string   // Firebase UID (ilan sahibi - Firestore'dan yuklenen ilanlarda mevcut)
   status: "pending" | "accepted" | "rejected" | "payment_pending" | "paid" | "delivered" | "completed"
   createdAt: string
   message?: string
@@ -29,78 +36,71 @@ export interface OffersContextType {
 const OffersContext = createContext<OffersContextType | undefined>(undefined)
 
 export function OffersProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  const [allOffers, setAllOffers] = useState<Offer[]>([])
+  const { user, firebaseUser } = useAuth()
+  const [myOffers, setMyOffers] = useState<Offer[]>([])
+  const [receivedOffers, setReceivedOffers] = useState<Offer[]>([])
 
+  // Gonderilen teklifleri dinle
   useEffect(() => {
-    try {
-      const savedOffers = localStorage.getItem("meradan_offers")
-      if (savedOffers) {
-        setAllOffers(JSON.parse(savedOffers))
-      }
-    } catch {
-      localStorage.removeItem("meradan_offers")
+    if (!firebaseUser) {
+      setMyOffers([])
+      return
     }
-  }, [])
+    const unsubscribe = subscribeToMyOffers(firebaseUser.uid, setMyOffers)
+    return () => unsubscribe()
+  }, [firebaseUser])
+
+  // Alinan teklifleri dinle
+  useEffect(() => {
+    if (!firebaseUser) {
+      setReceivedOffers([])
+      return
+    }
+    const unsubscribe = subscribeToReceivedOffers(firebaseUser.uid, setReceivedOffers)
+    return () => unsubscribe()
+  }, [firebaseUser])
 
   const sendOffer = (offerData: Omit<Offer, "id" | "createdAt" | "status" | "offererName" | "offererId">): boolean => {
-    if (!user || !user.isVerified) {
+    if (!user || !firebaseUser || !user.isVerified) {
       return false
     }
 
-    const newOffer: Offer = {
+    sendOfferToFirestore({
       ...offerData,
-      id: `offer_${Date.now()}`,
       offererName: `${user.firstName} ${user.lastName}`,
-      offererId: user.phone,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    }
-
-    setAllOffers((prev) => {
-      const updated = [...prev, newOffer]
-      localStorage.setItem("meradan_offers", JSON.stringify(updated))
-      return updated
-    })
+      offererId: firebaseUser.uid,
+    } as Omit<Offer, "id" | "createdAt" | "status">)
 
     return true
   }
 
   const getOffersForListing = (listingId: string): Offer[] => {
-    return allOffers.filter((offer) => offer.listingId === listingId)
+    const all = [...myOffers, ...receivedOffers]
+    const seen = new Set<string>()
+    return all.filter((o) => {
+      if (o.listingId !== listingId || seen.has(o.id)) return false
+      seen.add(o.id)
+      return true
+    })
   }
 
-  const getMyOffers = (): Offer[] => {
-    if (!user) return []
-    return allOffers.filter((offer) => offer.offererId === user.phone)
-  }
+  const getMyOffers = (): Offer[] => myOffers
 
-  const getReceivedOffers = (): Offer[] => {
-    if (!user || !user.myListings) return []
-    return allOffers.filter((offer) => user.myListings?.includes(offer.listingId))
-  }
+  const getReceivedOffers = (): Offer[] => receivedOffers
 
   const updateOfferStatus = (offerId: string, status: Offer["status"]) => {
-    setAllOffers((prev) => {
-      const updated = prev.map((offer) => {
-        if (offer.id === offerId) {
-          const updates: Partial<Offer> = { status }
-          if (status === "paid") {
-            updates.paymentDate = new Date().toISOString()
-          }
-          if (status === "delivered") {
-            updates.deliveryDate = new Date().toISOString()
-          }
-          if (status === "completed") {
-            updates.completedDate = new Date().toISOString()
-          }
-          return { ...offer, ...updates }
-        }
-        return offer
-      })
-      localStorage.setItem("meradan_offers", JSON.stringify(updated))
-      return updated
-    })
+    const extraData: Partial<Offer> = {}
+    if (status === "paid") extraData.paymentDate = new Date().toISOString()
+    if (status === "delivered") extraData.deliveryDate = new Date().toISOString()
+    if (status === "completed") extraData.completedDate = new Date().toISOString()
+
+    // Optimistic update
+    const update = (prev: Offer[]) =>
+      prev.map((o) => (o.id === offerId ? { ...o, status, ...extraData } : o))
+    setMyOffers(update)
+    setReceivedOffers(update)
+
+    updateOfferInFirestore(offerId, status, extraData)
   }
 
   return (

@@ -3,6 +3,14 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { Listing as DataListing } from "@/lib/listings-data"
 import { useAuth } from "./auth-context"
+import {
+  getFavorites,
+  addToFavorites,
+  removeFromFavorites,
+  addListingToFirestore,
+  addListingIdToUser,
+  subscribeToUserListings,
+} from "@/lib/firestore"
 
 export interface ListingsContextType {
   favorites: string[]
@@ -11,55 +19,58 @@ export interface ListingsContextType {
   isMyListing: (listingId: string) => boolean
   addMyListing: (listingId: string) => void
   userCreatedListings: DataListing[]
-  addCreatedListing: (listing: DataListing) => void
+  addCreatedListing: (listing: DataListing) => Promise<void>
   getCreatedListingById: (id: string) => DataListing | undefined
 }
 
 const ListingsContext = createContext<ListingsContextType | undefined>(undefined)
 
 export function ListingsProvider({ children }: { children: ReactNode }) {
-  const { user, updateUser } = useAuth()
+  const { user, firebaseUser, updateUser } = useAuth()
   const [favorites, setFavorites] = useState<string[]>([])
   const [userCreatedListings, setUserCreatedListings] = useState<DataListing[]>([])
 
+  // Favorileri Firestore'dan yukle
   useEffect(() => {
-    try {
-      const savedFavorites = localStorage.getItem("meradan_favorites")
-      const savedCreatedListings = localStorage.getItem("meradan_created_listings")
-      const savedUser = localStorage.getItem("meradan_user")
-
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites))
-      }
-
-      if (savedCreatedListings) {
-        setUserCreatedListings(JSON.parse(savedCreatedListings))
-      }
-
-      // Restore favorites from user data if available
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser)
-        if (parsed.favorites && !savedFavorites) {
-          setFavorites(parsed.favorites)
-        }
-      }
-    } catch {
-      localStorage.removeItem("meradan_favorites")
-      localStorage.removeItem("meradan_created_listings")
+    if (!firebaseUser) {
+      setFavorites([])
+      return
     }
-  }, [])
+
+    getFavorites(firebaseUser.uid).then((favs) => {
+      setFavorites(favs)
+    })
+  }, [firebaseUser])
+
+  // Kullanicinin ilanlarini Firestore'dan dinle (realtime)
+  useEffect(() => {
+    if (!firebaseUser) {
+      setUserCreatedListings([])
+      return
+    }
+
+    const unsubscribe = subscribeToUserListings(firebaseUser.uid, (listings) => {
+      setUserCreatedListings(listings)
+    })
+
+    return () => unsubscribe()
+  }, [firebaseUser])
 
   const toggleFavorite = (listingId: string) => {
-    setFavorites((prev) => {
-      const newFavorites = prev.includes(listingId) ? prev.filter((id) => id !== listingId) : [...prev, listingId]
-      localStorage.setItem("meradan_favorites", JSON.stringify(newFavorites))
+    const isCurrentlyFavorite = favorites.includes(listingId)
+    const newFavorites = isCurrentlyFavorite
+      ? favorites.filter((id) => id !== listingId)
+      : [...favorites, listingId]
 
-      if (user) {
-        updateUser({ favorites: newFavorites })
+    setFavorites(newFavorites)
+
+    if (firebaseUser) {
+      if (isCurrentlyFavorite) {
+        removeFromFavorites(firebaseUser.uid, listingId)
+      } else {
+        addToFavorites(firebaseUser.uid, listingId)
       }
-
-      return newFavorites
-    })
+    }
   }
 
   const isFavorite = (listingId: string) => {
@@ -67,24 +78,35 @@ export function ListingsProvider({ children }: { children: ReactNode }) {
   }
 
   const isMyListing = (listingId: string): boolean => {
-    if (!user || !user.myListings) return false
+    if (!user?.myListings) return false
     return user.myListings.includes(listingId)
   }
 
   const addMyListing = (listingId: string) => {
-    if (user) {
-      updateUser({
-        myListings: [...(user.myListings || []), listingId],
-      })
+    if (user && firebaseUser) {
+      updateUser({ myListings: [...(user.myListings || []), listingId] })
+      addListingIdToUser(firebaseUser.uid, listingId)
     }
   }
 
-  const addCreatedListing = (listing: DataListing) => {
-    setUserCreatedListings((prev) => {
-      const updated = [listing, ...prev]
-      localStorage.setItem("meradan_created_listings", JSON.stringify(updated))
-      return updated
-    })
+  const addCreatedListing = async (listing: DataListing) => {
+    if (firebaseUser) {
+      const firestoreId = await addListingToFirestore(listing, firebaseUser.uid)
+      // Firestore'da olusturulan ilan otomatik subscribeToUserListings ile gelecek
+      // Ama local state'e de ekle (aninda gosterim icin)
+      setUserCreatedListings((prev) => [{ ...listing, id: firestoreId }, ...prev])
+      addListingIdToUser(firebaseUser.uid, firestoreId)
+      updateUser({ myListings: [...(user?.myListings || []), firestoreId] })
+    } else {
+      // Misafir kullanici - localStorage fallback
+      setUserCreatedListings((prev) => {
+        const updated = [listing, ...prev]
+        try {
+          localStorage.setItem("meradan_created_listings", JSON.stringify(updated))
+        } catch {}
+        return updated
+      })
+    }
   }
 
   const getCreatedListingById = (id: string): DataListing | undefined => {

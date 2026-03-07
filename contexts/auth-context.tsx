@@ -1,6 +1,14 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+import {
+  getUserProfile,
+  saveUserProfile,
+  updateUserProfile,
+  updateUserBadges,
+} from "@/lib/firestore"
 
 export interface UserBadges {
   phoneVerified: boolean
@@ -12,6 +20,7 @@ export interface UserBadges {
 export type UserLevel = "new" | "trusted" | "expert" | "premium"
 
 export interface User {
+  uid?: string
   firstName: string
   lastName: string
   phone: string
@@ -87,10 +96,11 @@ export function getLevelInfo(level: UserLevel) {
 
 export interface AuthContextType {
   user: User | null
-  login: (userData: User) => void
-  logout: () => void
-  updateUser: (userData: Partial<User>) => void
-  updateBadges: (badges: Partial<UserBadges>) => void
+  firebaseUser: FirebaseUser | null
+  login: (userData: User) => Promise<void>
+  logout: () => Promise<void>
+  updateUser: (userData: Partial<User>) => Promise<void>
+  updateBadges: (badges: Partial<UserBadges>) => Promise<void>
   isLoggedIn: boolean
   isLoading: boolean
 }
@@ -99,87 +109,88 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("meradan_user")
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser)
-        if (!parsed.badges) {
-          parsed.badges = {
-            phoneVerified: parsed.isVerified || false,
-            identityVerified: false,
-            fastResponder: false,
-            successfulSales: 0,
-          }
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser)
+      if (fbUser) {
+        const profile = await getUserProfile(fbUser.uid)
+        if (profile) {
+          profile.level = calculateUserLevel(profile.badges)
+          setUser(profile)
+        } else {
+          // Firebase user var ama profil yok - giris sayfasi halledecek
+          setUser(null)
         }
-        if (!parsed.memberSince) {
-          parsed.memberSince = new Date().toISOString()
-        }
-        if (!parsed.myListings) {
-          parsed.myListings = []
-        }
-        parsed.level = calculateUserLevel(parsed.badges)
-        setUser(parsed)
+      } else {
+        setUser(null)
       }
-    } catch {
-      localStorage.removeItem("meradan_user")
-    }
-    setIsLoading(false)
+      setIsLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
-  const login = (userData: User) => {
-    const newUser = {
+  const login = async (userData: User) => {
+    if (!firebaseUser) return
+
+    const newUser: User = {
       ...userData,
+      uid: firebaseUser.uid,
+      isVerified: true,
       badges: userData.badges || {
-        phoneVerified: false,
+        phoneVerified: true,
         identityVerified: false,
         fastResponder: false,
         successfulSales: 0,
       },
       memberSince: userData.memberSince || new Date().toISOString(),
       responseRate: userData.responseRate || 0,
+      favorites: userData.favorites || [],
+      myListings: userData.myListings || [],
     }
     newUser.level = calculateUserLevel(newUser.badges)
+
+    await saveUserProfile(firebaseUser.uid, newUser)
     setUser(newUser)
-    localStorage.setItem("meradan_user", JSON.stringify(newUser))
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await signOut(auth)
     setUser(null)
-    localStorage.removeItem("meradan_user")
+    setFirebaseUser(null)
   }
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData }
-      if (userData.isVerified !== undefined && updatedUser.badges) {
-        updatedUser.badges.phoneVerified = userData.isVerified
-      }
-      updatedUser.level = calculateUserLevel(updatedUser.badges)
-      setUser(updatedUser)
-      localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user || !firebaseUser) return
+    const updatedUser = { ...user, ...userData }
+    if (userData.isVerified !== undefined && updatedUser.badges) {
+      updatedUser.badges.phoneVerified = userData.isVerified
     }
+    updatedUser.level = calculateUserLevel(updatedUser.badges)
+    setUser(updatedUser)
+    await updateUserProfile(firebaseUser.uid, userData)
   }
 
-  const updateBadges = (badgeUpdates: Partial<UserBadges>) => {
-    if (user && user.badges) {
-      const updatedBadges = { ...user.badges, ...badgeUpdates }
-      const updatedUser = {
-        ...user,
-        badges: updatedBadges,
-        level: calculateUserLevel(updatedBadges),
-      }
-      setUser(updatedUser)
-      localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
+  const updateBadges = async (badgeUpdates: Partial<UserBadges>) => {
+    if (!user?.badges || !firebaseUser) return
+    const updatedBadges = { ...user.badges, ...badgeUpdates }
+    const updatedUser = {
+      ...user,
+      badges: updatedBadges,
+      level: calculateUserLevel(updatedBadges),
     }
+    setUser(updatedUser)
+    await updateUserBadges(firebaseUser.uid, badgeUpdates)
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        firebaseUser,
         login,
         logout,
         updateUser,
