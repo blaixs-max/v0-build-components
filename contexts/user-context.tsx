@@ -42,6 +42,7 @@ export interface User {
   firstName: string
   lastName: string
   phone: string
+  location?: string
   isVerified?: boolean
   badges?: UserBadges
   level?: UserLevel
