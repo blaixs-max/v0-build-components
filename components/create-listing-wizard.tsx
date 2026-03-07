@@ -1,71 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import { ArrowLeft, Camera, X, Check, Video } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
-import { LocationSelector } from "@/components/location-selector"
-import { getCityByValue } from "@/lib/turkey-locations"
+import { StepCategory } from "@/components/wizard/step-category"
+import { StepDetailsCattle } from "@/components/wizard/step-details-cattle"
+import { StepDetailsSheep } from "@/components/wizard/step-details-sheep"
+import { StepPriceMedia } from "@/components/wizard/step-price-media"
+import { initialFormData } from "@/components/wizard/wizard-types"
+import type { ListingFormData, Category } from "@/components/wizard/wizard-types"
 
-type Category = "buyukbas" | "kucukbas" | null
-type Gender = "disi" | "erkek"
-type AnimalType = "koyun" | "keci"
-type SaleType = "tekli" | "toplu"
-
-export interface ListingFormData {
-  category: Category
-  gender: Gender
-  breed: string
-  age: string
-  weight: string
-  status: string[]
-  animalType: AnimalType
-  saleType: SaleType
-  quantity: string
-  price: string
-  photos: string[]
-  video: string | null
-  city: string
-  district: string
-}
-
-const initialFormData: ListingFormData = {
-  category: null,
-  gender: "erkek",
-  breed: "",
-  age: "",
-  weight: "",
-  status: [],
-  animalType: "koyun",
-  saleType: "tekli",
-  quantity: "1",
-  price: "",
-  photos: [],
-  video: null,
-  city: "",
-  district: "",
-}
-
-const BUYUKBAS_BREEDS = [
-  { value: "simental", label: "Simental", image: "/simental-bull-cattle.jpg" },
-  { value: "holstein", label: "Hoştayn", image: "/holstein-black-white-dairy-cow.jpg" },
-  { value: "montofon", label: "Montofon", image: "/brown-swiss-heifer-cattle.jpg" },
-  { value: "yerli", label: "Yerli", image: "/jersey-brown-dairy-cow.jpg" },
-]
-
-const KUCUKBAS_BREEDS = [
-  { value: "merinos", label: "Merinos", image: "/merino-ram-sheep-wool.jpg" },
-  { value: "kivircik", label: "Kıvırcık", image: "/kivircik-lamb-sheep.jpg" },
-  { value: "kilkecisi", label: "Kıl Keçisi", image: "/akkaraman-sheep-white.jpg" },
-]
-
-const AGE_OPTIONS = ["0-6 Ay", "6-12 Ay", "1-2 Yaş", "2+ Yaş"]
-
-const BUYUKBAS_STATUS = ["Gebe", "Buzağılı", "Besilik", "Kurbanlık"]
-const KUCUKBAS_STATUS = ["Kuzulu", "Gebe", "Adaklık"]
+// Re-export for backwards compatibility
+export type { ListingFormData } from "@/components/wizard/wizard-types"
 
 interface CreateListingWizardProps {
   onClose: () => void
@@ -95,8 +41,8 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
     }
   }
 
-  const handleSubmit = () => {
-    onSubmit(formData)
+  const handleUpdate = (updates: Partial<ListingFormData>) => {
+    setFormData((prev) => ({ ...prev, ...updates }))
   }
 
   const toggleStatus = (status: string) => {
@@ -117,18 +63,14 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
   }
 
   const handleVideoUpload = () => {
-    const demoVideo = "https://www.w3schools.com/html/mov_bbb.mp4"
     setFormData((prev) => ({
       ...prev,
-      video: demoVideo,
+      video: "https://www.w3schools.com/html/mov_bbb.mp4",
     }))
   }
 
   const removeVideo = () => {
-    setFormData((prev) => ({
-      ...prev,
-      video: null,
-    }))
+    setFormData((prev) => ({ ...prev, video: null }))
   }
 
   const removePhoto = (index: number) => {
@@ -136,17 +78,6 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
       ...prev,
       photos: prev.photos.filter((_, i) => i !== index),
     }))
-  }
-
-  const getLocationDisplay = () => {
-    if (!formData.city) return null
-    const city = getCityByValue(formData.city)
-    if (!city) return null
-    if (formData.district && formData.district !== "all") {
-      const district = city.districts.find((d) => d.value === formData.district)
-      return district ? `${city.label}, ${district.label}` : city.label
-    }
-    return city.label
   }
 
   const isStep2Valid = () => {
@@ -184,438 +115,27 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {/* Step 1: Kategori Seçimi */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-bold text-foreground">Hayvan Türü Seçin</h2>
-              <p className="text-sm text-muted-foreground mt-1">Hangi türde hayvan satmak istiyorsunuz?</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Card
-                className={cn(
-                  "p-6 cursor-pointer transition-all hover:shadow-lg border-2",
-                  formData.category === "buyukbas"
-                    ? "border-meradan-green bg-meradan-green/5"
-                    : "border-transparent hover:border-meradan-green/50",
-                )}
-                onClick={() => handleCategorySelect("buyukbas")}
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 relative">
-                    <Image src="/images/buyukbas.png" alt="Büyükbaş" fill className="object-contain" />
-                  </div>
-                  <span className="font-semibold text-foreground">Büyükbaş</span>
-                  <span className="text-xs text-muted-foreground">İnek, Boğa, Dana</span>
-                </div>
-              </Card>
-
-              <Card
-                className={cn(
-                  "p-6 cursor-pointer transition-all hover:shadow-lg border-2",
-                  formData.category === "kucukbas"
-                    ? "border-meradan-green bg-meradan-green/5"
-                    : "border-transparent hover:border-meradan-green/50",
-                )}
-                onClick={() => handleCategorySelect("kucukbas")}
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 relative">
-                    <Image src="/images/kucukbas.png" alt="Küçükbaş" fill className="object-contain" />
-                  </div>
-                  <span className="font-semibold text-foreground">Küçükbaş</span>
-                  <span className="text-xs text-muted-foreground">Koyun, Keçi, Kuzu</span>
-                </div>
-              </Card>
-            </div>
-          </div>
+          <StepCategory selectedCategory={formData.category} onSelect={handleCategorySelect} />
         )}
 
-        {/* Step 2: Detay Bilgileri - Büyükbaş */}
         {step === 2 && formData.category === "buyukbas" && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-foreground">Büyükbaş Bilgileri</h2>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Konum <span className="text-red-500">*</span>
-              </label>
-              <LocationSelector
-                selectedCity={formData.city}
-                selectedDistrict={formData.district}
-                onCityChange={(city) => setFormData((prev) => ({ ...prev, city, district: "" }))}
-                onDistrictChange={(district) => setFormData((prev) => ({ ...prev, district }))}
-              />
-            </div>
-
-            {/* Cinsiyet */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Cinsiyet</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={formData.gender === "disi" ? "default" : "outline"}
-                  className={cn("h-12", formData.gender === "disi" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setFormData((prev) => ({ ...prev, gender: "disi" }))}
-                >
-                  Dişi
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.gender === "erkek" ? "default" : "outline"}
-                  className={cn("h-12", formData.gender === "erkek" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setFormData((prev) => ({ ...prev, gender: "erkek" }))}
-                >
-                  Erkek
-                </Button>
-              </div>
-            </div>
-
-            {/* Irk */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Irk <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {BUYUKBAS_BREEDS.map((breed) => (
-                  <button
-                    key={breed.value}
-                    type="button"
-                    className={cn(
-                      "flex items-center gap-2 p-3 rounded-lg border-2 transition-all",
-                      formData.breed === breed.value
-                        ? "border-meradan-green bg-meradan-green/5"
-                        : "border-border hover:border-meradan-green/50",
-                    )}
-                    onClick={() => setFormData((prev) => ({ ...prev, breed: breed.value }))}
-                  >
-                    <div className="w-10 h-10 rounded-full overflow-hidden relative flex-shrink-0">
-                      <Image src={breed.image || "/placeholder.svg"} alt={breed.label} fill className="object-cover" />
-                    </div>
-                    <span className="text-sm font-medium">{breed.label}</span>
-                    {formData.breed === breed.value && <Check className="h-4 w-4 text-meradan-green ml-auto" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Yaş */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Yaş <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {AGE_OPTIONS.map((age) => (
-                  <button
-                    key={age}
-                    type="button"
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                      formData.age === age
-                        ? "bg-meradan-green text-white"
-                        : "bg-muted text-foreground hover:bg-muted/80",
-                    )}
-                    onClick={() => setFormData((prev) => ({ ...prev, age }))}
-                  >
-                    {age}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Ağırlık */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Canlı Kilo <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Input
-                  type="number"
-                  placeholder="Örn: 450"
-                  value={formData.weight}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, weight: e.target.value }))}
-                  className="h-12 pr-12 text-lg"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">kg</span>
-              </div>
-            </div>
-
-            {/* Durum */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Durum (Opsiyonel)</label>
-              <div className="flex flex-wrap gap-2">
-                {BUYUKBAS_STATUS.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                      formData.status.includes(status)
-                        ? "bg-meradan-orange text-white"
-                        : "bg-muted text-foreground hover:bg-muted/80",
-                    )}
-                    onClick={() => toggleStatus(status)}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <StepDetailsCattle formData={formData} onUpdate={handleUpdate} onToggleStatus={toggleStatus} />
         )}
 
-        {/* Step 2: Detay Bilgileri - Küçükbaş */}
         {step === 2 && formData.category === "kucukbas" && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-foreground">Küçükbaş Bilgileri</h2>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Konum <span className="text-red-500">*</span>
-              </label>
-              <LocationSelector
-                selectedCity={formData.city}
-                selectedDistrict={formData.district}
-                onCityChange={(city) => setFormData((prev) => ({ ...prev, city, district: "" }))}
-                onDistrictChange={(district) => setFormData((prev) => ({ ...prev, district }))}
-              />
-            </div>
-
-            {/* Tür */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Tür</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={formData.animalType === "koyun" ? "default" : "outline"}
-                  className={cn(
-                    "h-12",
-                    formData.animalType === "koyun" && "bg-meradan-green hover:bg-meradan-green/90",
-                  )}
-                  onClick={() => setFormData((prev) => ({ ...prev, animalType: "koyun" }))}
-                >
-                  Koyun
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.animalType === "keci" ? "default" : "outline"}
-                  className={cn("h-12", formData.animalType === "keci" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setFormData((prev) => ({ ...prev, animalType: "keci" }))}
-                >
-                  Keçi
-                </Button>
-              </div>
-            </div>
-
-            {/* Satış Tipi */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Satış Tipi</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={formData.saleType === "tekli" ? "default" : "outline"}
-                  className={cn("h-12", formData.saleType === "tekli" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setFormData((prev) => ({ ...prev, saleType: "tekli" }))}
-                >
-                  Tekli Satış
-                </Button>
-                <Button
-                  type="button"
-                  variant={formData.saleType === "toplu" ? "default" : "outline"}
-                  className={cn("h-12", formData.saleType === "toplu" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setFormData((prev) => ({ ...prev, saleType: "toplu" }))}
-                >
-                  Toplu Satış
-                </Button>
-              </div>
-            </div>
-
-            {/* Adet - Sadece Toplu Satışta */}
-            {formData.saleType === "toplu" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Adet</label>
-                <Input
-                  type="number"
-                  placeholder="Kaç adet?"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
-                  className="h-12 text-lg"
-                />
-              </div>
-            )}
-
-            {/* Irk */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Irk <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-1 gap-2">
-                {KUCUKBAS_BREEDS.map((breed) => (
-                  <button
-                    key={breed.value}
-                    type="button"
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg border-2 transition-all",
-                      formData.breed === breed.value
-                        ? "border-meradan-green bg-meradan-green/5"
-                        : "border-border hover:border-meradan-green/50",
-                    )}
-                    onClick={() => setFormData((prev) => ({ ...prev, breed: breed.value }))}
-                  >
-                    <div className="w-12 h-12 rounded-full overflow-hidden relative flex-shrink-0">
-                      <Image src={breed.image || "/placeholder.svg"} alt={breed.label} fill className="object-cover" />
-                    </div>
-                    <span className="text-sm font-medium flex-1 text-left">{breed.label}</span>
-                    {formData.breed === breed.value && <Check className="h-5 w-5 text-meradan-green" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Durum */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Durum (Opsiyonel)</label>
-              <div className="flex flex-wrap gap-2">
-                {KUCUKBAS_STATUS.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                      formData.status.includes(status)
-                        ? "bg-meradan-orange text-white"
-                        : "bg-muted text-foreground hover:bg-muted/80",
-                    )}
-                    onClick={() => toggleStatus(status)}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          <StepDetailsSheep formData={formData} onUpdate={handleUpdate} onToggleStatus={toggleStatus} />
         )}
 
-        {/* Step 3: Fiyat ve Fotoğraf */}
         {step === 3 && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-foreground">Fiyat ve Medya</h2>
-
-            {/* Seçilen Konum Özeti */}
-            {getLocationDisplay() && (
-              <div className="p-3 bg-meradan-green/10 rounded-lg">
-                <p className="text-sm text-meradan-green font-medium">Konum: {getLocationDisplay()}</p>
-              </div>
-            )}
-
-            {/* Fiyat */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fiyat <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₺</span>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                  className="h-14 pl-10 text-2xl font-bold"
-                />
-              </div>
-              {formData.price && (
-                <p className="text-xs text-muted-foreground">
-                  Alıcı komisyonu dahil toplam: ₺{(Number(formData.price) * 1.03).toLocaleString("tr-TR")}
-                </p>
-              )}
-            </div>
-
-            {/* Fotoğraf Yükleme */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Fotoğraflar ({formData.photos.length}/5) <span className="text-red-500">*</span>
-              </label>
-
-              {formData.photos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {formData.photos.map((photo, index) => (
-                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                      <Image
-                        src={photo || "/placeholder.svg"}
-                        alt={`Fotoğraf ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 p-1 bg-black/50 rounded-full"
-                      >
-                        <X className="h-4 w-4 text-white" />
-                      </button>
-                      {index === 0 && (
-                        <span className="absolute bottom-1 left-1 px-2 py-0.5 bg-meradan-green text-white text-xs rounded">
-                          Kapak
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {formData.photos.length < 5 && (
-                <button
-                  type="button"
-                  onClick={handlePhotoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-green/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Fotoğraf Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">En az 1, en fazla 5 fotoğraf</p>
-                  </div>
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Video (Opsiyonel)</label>
-
-              {formData.video ? (
-                <div className="relative rounded-xl overflow-hidden bg-black">
-                  <video src={formData.video} className="w-full aspect-video object-contain" controls />
-                  <button
-                    type="button"
-                    onClick={removeVideo}
-                    className="absolute top-2 right-2 p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
-                  >
-                    <X className="h-5 w-5 text-white" />
-                  </button>
-                  <span className="absolute bottom-2 left-2 px-2 py-1 bg-meradan-orange text-white text-xs rounded flex items-center gap-1">
-                    <Video className="h-3 w-3" />
-                    Video
-                  </span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleVideoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-orange/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-meradan-orange/10 flex items-center justify-center">
-                    <Video className="h-8 w-8 text-meradan-orange" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Video Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hayvanın videosunu ekleyin (Maks. 30 sn)</p>
-                  </div>
-                </button>
-              )}
-            </div>
-          </div>
+          <StepPriceMedia
+            formData={formData}
+            onUpdate={handleUpdate}
+            onPhotoUpload={handlePhotoUpload}
+            onRemovePhoto={removePhoto}
+            onVideoUpload={handleVideoUpload}
+            onRemoveVideo={removeVideo}
+          />
         )}
       </div>
 
@@ -633,7 +153,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
           )}
           {step === 3 && (
             <Button
-              onClick={handleSubmit}
+              onClick={() => onSubmit(formData)}
               disabled={!isStep3Valid()}
               className="w-full h-14 text-lg font-semibold bg-meradan-orange hover:bg-meradan-orange/90 disabled:opacity-50"
             >
