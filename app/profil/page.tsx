@@ -235,7 +235,7 @@ export default function ProfilPage() {
         onVerified={handleVerified}
       />
 
-      <BottomNavigation />
+      <BottomNavigation activeTab="profile" />
     </div>
   )
 }

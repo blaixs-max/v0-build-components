@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import type { Listing as DataListing } from "@/lib/listings-data"
 
 export interface UserBadges {
   phoneVerified: boolean
@@ -41,6 +42,7 @@ export interface User {
   firstName: string
   lastName: string
   phone: string
+  location?: string
   isVerified?: boolean
   badges?: UserBadges
   level?: UserLevel
@@ -131,6 +133,9 @@ interface UserContextType {
   updateOfferStatus: (offerId: string, status: Offer["status"]) => void
   isMyListing: (listingId: string) => boolean
   addMyListing: (listingId: string) => void
+  userCreatedListings: DataListing[]
+  addCreatedListing: (listing: DataListing) => void
+  getCreatedListingById: (id: string) => DataListing | undefined
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -140,41 +145,55 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [favorites, setFavorites] = useState<string[]>([])
   const [allOffers, setAllOffers] = useState<Offer[]>([])
+  const [userCreatedListings, setUserCreatedListings] = useState<DataListing[]>([])
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("meradan_user")
-    const savedFavorites = localStorage.getItem("meradan_favorites")
-    const savedOffers = localStorage.getItem("meradan_offers")
+    try {
+      const savedUser = localStorage.getItem("meradan_user")
+      const savedFavorites = localStorage.getItem("meradan_favorites")
+      const savedOffers = localStorage.getItem("meradan_offers")
+      const savedCreatedListings = localStorage.getItem("meradan_created_listings")
 
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites))
-    }
+      if (savedFavorites) {
+        setFavorites(JSON.parse(savedFavorites))
+      }
 
-    if (savedOffers) {
-      setAllOffers(JSON.parse(savedOffers))
-    }
+      if (savedOffers) {
+        setAllOffers(JSON.parse(savedOffers))
+      }
 
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser)
-      if (!parsed.badges) {
-        parsed.badges = {
-          phoneVerified: parsed.isVerified || false,
-          identityVerified: false,
-          fastResponder: false,
-          successfulSales: 0,
+      if (savedCreatedListings) {
+        setUserCreatedListings(JSON.parse(savedCreatedListings))
+      }
+
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser)
+        if (!parsed.badges) {
+          parsed.badges = {
+            phoneVerified: parsed.isVerified || false,
+            identityVerified: false,
+            fastResponder: false,
+            successfulSales: 0,
+          }
         }
+        if (!parsed.memberSince) {
+          parsed.memberSince = new Date().toISOString()
+        }
+        if (!parsed.myListings) {
+          parsed.myListings = []
+        }
+        if (parsed.favorites) {
+          setFavorites(parsed.favorites)
+        }
+        parsed.level = calculateUserLevel(parsed.badges)
+        setUser(parsed)
       }
-      if (!parsed.memberSince) {
-        parsed.memberSince = new Date().toISOString()
-      }
-      if (!parsed.myListings) {
-        parsed.myListings = []
-      }
-      if (parsed.favorites) {
-        setFavorites(parsed.favorites)
-      }
-      parsed.level = calculateUserLevel(parsed.badges)
-      setUser(parsed)
+    } catch {
+      // localStorage verisi bozulmuşsa sıfırla
+      localStorage.removeItem("meradan_user")
+      localStorage.removeItem("meradan_favorites")
+      localStorage.removeItem("meradan_offers")
+      localStorage.removeItem("meradan_created_listings")
     }
     setIsLoading(false)
   }, [])
@@ -289,9 +308,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const updated = prev.map((offer) => {
         if (offer.id === offerId) {
           const updates: Partial<Offer> = { status }
-          if (status === "accepted") {
-            updates.status = "payment_pending"
-          }
           if (status === "paid") {
             updates.paymentDate = new Date().toISOString()
           }
@@ -324,6 +340,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(updatedUser)
       localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
     }
+  }
+
+  const addCreatedListing = (listing: DataListing) => {
+    setUserCreatedListings((prev) => {
+      const updated = [listing, ...prev]
+      localStorage.setItem("meradan_created_listings", JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  const getCreatedListingById = (id: string): DataListing | undefined => {
+    return userCreatedListings.find((l) => l.id === id)
   }
 
   if (isLoading) {
@@ -361,6 +389,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateOfferStatus,
         isMyListing,
         addMyListing,
+        userCreatedListings,
+        addCreatedListing,
+        getCreatedListingById,
       }}
     >
       {children}

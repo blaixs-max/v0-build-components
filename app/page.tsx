@@ -6,7 +6,7 @@ import { CategoryFilterBar, type SortOption, type ViewMode } from "@/components/
 import { type FilterValues, PRICE_OPTIONS } from "@/components/filter-bar"
 import { ListingGrid } from "@/components/listing-grid"
 import { BottomNavigation } from "@/components/bottom-navigation"
-import { CreateListingWizard } from "@/components/create-listing-wizard"
+import { CreateListingWizard, type ListingFormData } from "@/components/create-listing-wizard"
 import { SearchFilterDrawer } from "@/components/search-filter-drawer"
 import { useUser } from "@/contexts/user-context"
 import { demoListings } from "@/lib/listings-data"
@@ -23,7 +23,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { toggleFavorite, isFavorite } = useUser()
+  const { toggleFavorite, isFavorite, addMyListing, addCreatedListing } = useUser()
 
   const handleFavoriteClick = (id: string) => {
     toggleFavorite(id)
@@ -51,21 +51,27 @@ export default function HomePage() {
     }
   }
 
-  const handleCreateListing = (data: any) => {
+  const handleCreateListing = (data: ListingFormData) => {
+    const newId = `user_${Date.now()}`
     const newListing = {
-      id: String(listings.length + 1),
+      id: newId,
       title: `${data.breed} ${data.gender === "disi" ? "İnek" : "Boğa"}`,
       location: data.city || "Konya",
       city: data.city || "Konya",
       price: Number(data.price),
       imageUrl: data.photos[0] || "/simental-bull-cattle.jpg",
-      images: data.photos || [],
+      images: data.photos,
       videoUrl: data.video || null,
       isFavorite: false,
       breed: data.breed,
-      priceType: "sabit",
-      category: data.category,
+      priceType: "sabit" as const,
+      category: data.category as "buyukbas" | "kucukbas",
+      age: data.age,
+      weight: data.weight ? `${data.weight} kg` : undefined,
+      createdAt: new Date().toISOString().split("T")[0],
     }
+    addCreatedListing(newListing)
+    addMyListing(newId)
     setListings((prev) => [newListing, ...prev])
     setShowCreateWizard(false)
     setActiveTab("home")

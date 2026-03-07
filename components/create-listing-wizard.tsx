@@ -15,7 +15,7 @@ type Gender = "disi" | "erkek"
 type AnimalType = "koyun" | "keci"
 type SaleType = "tekli" | "toplu"
 
-interface FormData {
+export interface ListingFormData {
   category: Category
   gender: Gender
   breed: string
@@ -32,7 +32,7 @@ interface FormData {
   district: string
 }
 
-const initialFormData: FormData = {
+const initialFormData: ListingFormData = {
   category: null,
   gender: "erkek",
   breed: "",
@@ -69,12 +69,12 @@ const KUCUKBAS_STATUS = ["Kuzulu", "Gebe", "Adaklık"]
 
 interface CreateListingWizardProps {
   onClose: () => void
-  onSubmit: (data: FormData) => void
+  onSubmit: (data: ListingFormData) => void
 }
 
 export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardProps) {
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [formData, setFormData] = useState<ListingFormData>(initialFormData)
 
   const handleCategorySelect = (category: Category) => {
     setFormData({ ...initialFormData, category })

@@ -109,7 +109,7 @@ export function SearchFilterDrawer({
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetContent side="right" className="w-[85vw] sm:w-[400px] h-full flex flex-col p-0" hideClose>
+      <SheetContent side="right" className="w-[85vw] sm:w-[400px] h-full flex flex-col p-0">
         {/* Header */}
         <SheetHeader className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
