@@ -132,7 +132,7 @@ export default function TekliflerimPage() {
       <div className="px-4 py-4">
         <Tabs defaultValue="sent" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="sent">Gonderdigim ({myOffers.length})</TabsTrigger>
+            <TabsTrigger value="sent">Gönderdiğim ({myOffers.length})</TabsTrigger>
             <TabsTrigger value="received">Gelen ({receivedOffers.length})</TabsTrigger>
           </TabsList>
 
@@ -140,9 +140,9 @@ export default function TekliflerimPage() {
             {myOffers.length === 0 ? (
               <div className="text-center py-12">
                 <CreditCard className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <p className="text-muted-foreground mt-4">Henuz teklif gondermediniz</p>
+                <p className="text-muted-foreground mt-4">Henüz teklif göndermediniz</p>
                 <Button variant="outline" className="mt-4 bg-transparent" onClick={() => router.push("/")}>
-                  Ilanlara Goz At
+                  İlanlara Göz At
                 </Button>
               </div>
             ) : (
@@ -158,9 +158,9 @@ export default function TekliflerimPage() {
             {receivedOffers.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <p className="text-muted-foreground mt-4">Henuz teklif almadiniz</p>
-                <Button variant="outline" className="mt-4 bg-transparent" onClick={() => router.push("/ilan-ver")}>
-                  Ilan Ver
+                <p className="text-muted-foreground mt-4">Henüz teklif almadınız</p>
+                <Button variant="outline" className="mt-4 bg-transparent" onClick={() => router.push("/")}>
+                  İlan Ver
                 </Button>
               </div>
             ) : (
@@ -174,7 +174,7 @@ export default function TekliflerimPage() {
         </Tabs>
       </div>
 
-      <BottomNavigation />
+      <BottomNavigation activeTab="offers" />
     </div>
   )
 }

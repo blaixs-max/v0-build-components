@@ -23,7 +23,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { toggleFavorite, isFavorite } = useUser()
+  const { toggleFavorite, isFavorite, addMyListing, addCreatedListing } = useUser()
 
   const handleFavoriteClick = (id: string) => {
     toggleFavorite(id)
@@ -51,9 +51,21 @@ export default function HomePage() {
     }
   }
 
-  const handleCreateListing = (data: any) => {
+  const handleCreateListing = (data: {
+    category: "buyukbas" | "kucukbas"
+    gender: string
+    breed: string
+    age: string
+    weight: string
+    price: string
+    photos: string[]
+    video: string | null
+    city: string
+    district: string
+  }) => {
+    const newId = `user_${Date.now()}`
     const newListing = {
-      id: String(listings.length + 1),
+      id: newId,
       title: `${data.breed} ${data.gender === "disi" ? "İnek" : "Boğa"}`,
       location: data.city || "Konya",
       city: data.city || "Konya",
@@ -63,9 +75,14 @@ export default function HomePage() {
       videoUrl: data.video || null,
       isFavorite: false,
       breed: data.breed,
-      priceType: "sabit",
+      priceType: "sabit" as const,
       category: data.category,
+      age: data.age,
+      weight: data.weight ? `${data.weight} kg` : undefined,
+      createdAt: new Date().toISOString().split("T")[0],
     }
+    addCreatedListing(newListing)
+    addMyListing(newId)
     setListings((prev) => [newListing, ...prev])
     setShowCreateWizard(false)
     setActiveTab("home")
