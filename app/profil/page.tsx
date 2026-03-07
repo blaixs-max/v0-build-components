@@ -28,7 +28,7 @@ import { TrustScoreCard } from "@/components/trust-score-card"
 
 export default function ProfilPage() {
   const router = useRouter()
-  const { user, isLoggedIn, logout, updateUser, favorites } = useUser()
+  const { user, isLoggedIn, logout, updateUser, favorites, userCreatedListings, getMyOffers, getReceivedOffers } = useUser()
   const [verificationOpen, setVerificationOpen] = useState(false)
 
   useEffect(() => {
@@ -55,10 +55,10 @@ export default function ProfilPage() {
   }
 
   const menuItems = [
-    { icon: Package, label: "İlanlarım", href: "/ilanlarim", count: 3 },
+    { icon: Package, label: "İlanlarım", href: "/ilanlarim", count: userCreatedListings.length + (user.myListings?.length || 0) },
     { icon: Heart, label: "Favorilerim", href: "/favorilerim", count: favorites.length },
-    { icon: CreditCard, label: "Tekliflerim", href: "/tekliflerim", count: 0 },
-    { icon: Bell, label: "Bildirimler", href: "/bildirimler", count: 5 },
+    { icon: CreditCard, label: "Tekliflerim", href: "/tekliflerim", count: getMyOffers().length + getReceivedOffers().length },
+    { icon: Bell, label: "Bildirimler", href: "/bildirimler", count: getReceivedOffers().length },
   ]
 
   const settingsItems = [
@@ -143,7 +143,7 @@ export default function ProfilPage() {
           <CardContent className="p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold text-meradan-green">3</p>
+                <p className="text-2xl font-bold text-meradan-green">{userCreatedListings.length + (user.myListings?.length || 0)}</p>
                 <p className="text-xs text-muted-foreground">Aktif İlan</p>
               </div>
               <div>
@@ -151,8 +151,8 @@ export default function ProfilPage() {
                 <p className="text-xs text-muted-foreground">Favori</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-meradan-green">28</p>
-                <p className="text-xs text-muted-foreground">Görüntülenme</p>
+                <p className="text-2xl font-bold text-meradan-green">{getMyOffers().length + getReceivedOffers().length}</p>
+                <p className="text-xs text-muted-foreground">Teklif</p>
               </div>
             </div>
           </CardContent>

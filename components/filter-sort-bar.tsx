@@ -24,7 +24,7 @@ interface FilterSortBarProps {
 
 export function FilterSortBar({ onFilterClick, sortOption, onSortChange, activeFilterCount = 0 }: FilterSortBarProps) {
   const [sortOpen, setSortOpen] = useState(false)
-  const selectedSort = SORT_OPTIONS.find((opt) => opt.value === sortOption)
+  const _selectedSort = SORT_OPTIONS.find((opt) => opt.value === sortOption)
 
   return (
     <div className="flex items-center gap-3 px-4 py-3">

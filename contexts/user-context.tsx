@@ -4,8 +4,6 @@ import type { ReactNode } from "react"
 import { AuthProvider, useAuth } from "./auth-context"
 import { ListingsProvider, useListings } from "./listings-context"
 import { OffersProvider, useOffers } from "./offers-context"
-import type { Listing as DataListing } from "@/lib/listings-data"
-
 // Re-export types for backward compatibility
 export type { User, UserBadges, UserLevel } from "./auth-context"
 export { calculateUserLevel, getLevelInfo } from "./auth-context"
