@@ -6,7 +6,7 @@ import { CategoryFilterBar, type SortOption, type ViewMode } from "@/components/
 import { type FilterValues, PRICE_OPTIONS } from "@/components/filter-bar"
 import { ListingGrid } from "@/components/listing-grid"
 import { BottomNavigation } from "@/components/bottom-navigation"
-import { CreateListingWizard } from "@/components/create-listing-wizard"
+import { CreateListingWizard, type ListingFormData } from "@/components/create-listing-wizard"
 import { SearchFilterDrawer } from "@/components/search-filter-drawer"
 import { useUser } from "@/contexts/user-context"
 import { demoListings } from "@/lib/listings-data"
@@ -51,18 +51,7 @@ export default function HomePage() {
     }
   }
 
-  const handleCreateListing = (data: {
-    category: "buyukbas" | "kucukbas"
-    gender: string
-    breed: string
-    age: string
-    weight: string
-    price: string
-    photos: string[]
-    video: string | null
-    city: string
-    district: string
-  }) => {
+  const handleCreateListing = (data: ListingFormData) => {
     const newId = `user_${Date.now()}`
     const newListing = {
       id: newId,
@@ -71,12 +60,12 @@ export default function HomePage() {
       city: data.city || "Konya",
       price: Number(data.price),
       imageUrl: data.photos[0] || "/simental-bull-cattle.jpg",
-      images: data.photos || [],
+      images: data.photos,
       videoUrl: data.video || null,
       isFavorite: false,
       breed: data.breed,
       priceType: "sabit" as const,
-      category: data.category,
+      category: data.category as "buyukbas" | "kucukbas",
       age: data.age,
       weight: data.weight ? `${data.weight} kg` : undefined,
       createdAt: new Date().toISOString().split("T")[0],
