@@ -31,12 +31,12 @@ import { OffersList } from "@/components/offers-list"
 export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { toggleFavorite, isFavorite, isMyListing } = useUser()
+  const { toggleFavorite, isFavorite, isMyListing, getCreatedListingById } = useUser()
   const [showVideo, setShowVideo] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showOfferModal, setShowOfferModal] = useState(false)
 
-  const listing = getListingById(params.id as string)
+  const listing = getListingById(params.id as string) ?? getCreatedListingById(params.id as string)
 
   if (!listing) {
     return (
