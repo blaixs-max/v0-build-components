@@ -15,7 +15,7 @@ type Gender = "disi" | "erkek"
 type AnimalType = "koyun" | "keci"
 type SaleType = "tekli" | "toplu"
 
-export interface ListingListingFormData {
+export interface ListingFormData {
   category: Category
   gender: Gender
   breed: string
@@ -32,7 +32,7 @@ export interface ListingListingFormData {
   district: string
 }
 
-const initialListingFormData: ListingFormData = {
+const initialFormData: ListingFormData = {
   category: null,
   gender: "erkek",
   breed: "",
@@ -74,10 +74,10 @@ interface CreateListingWizardProps {
 
 export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardProps) {
   const [step, setStep] = useState(1)
-  const [formData, setListingFormData] = useState<ListingFormData>(initialListingFormData)
+  const [formData, setFormData] = useState<ListingFormData>(initialFormData)
 
   const handleCategorySelect = (category: Category) => {
-    setListingFormData({ ...initialListingFormData, category })
+    setFormData({ ...initialFormData, category })
     setStep(2)
   }
 
@@ -100,7 +100,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
   }
 
   const toggleStatus = (status: string) => {
-    setListingFormData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       status: prev.status.includes(status) ? prev.status.filter((s) => s !== status) : [...prev.status, status],
     }))
@@ -109,7 +109,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
   const handlePhotoUpload = () => {
     const demoPhotos = ["/simental-bull-cattle.jpg", "/simental-cow-cattle.jpg"]
     if (formData.photos.length < 5) {
-      setListingFormData((prev) => ({
+      setFormData((prev) => ({
         ...prev,
         photos: [...prev.photos, demoPhotos[prev.photos.length % 2]],
       }))
@@ -118,21 +118,21 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
 
   const handleVideoUpload = () => {
     const demoVideo = "https://www.w3schools.com/html/mov_bbb.mp4"
-    setListingFormData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       video: demoVideo,
     }))
   }
 
   const removeVideo = () => {
-    setListingFormData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       video: null,
     }))
   }
 
   const removePhoto = (index: number) => {
-    setListingFormData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       photos: prev.photos.filter((_, i) => i !== index),
     }))
@@ -244,8 +244,8 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
               <LocationSelector
                 selectedCity={formData.city}
                 selectedDistrict={formData.district}
-                onCityChange={(city) => setListingFormData((prev) => ({ ...prev, city, district: "" }))}
-                onDistrictChange={(district) => setListingFormData((prev) => ({ ...prev, district }))}
+                onCityChange={(city) => setFormData((prev) => ({ ...prev, city, district: "" }))}
+                onDistrictChange={(district) => setFormData((prev) => ({ ...prev, district }))}
               />
             </div>
 
@@ -257,7 +257,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="button"
                   variant={formData.gender === "disi" ? "default" : "outline"}
                   className={cn("h-12", formData.gender === "disi" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, gender: "disi" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, gender: "disi" }))}
                 >
                   Dişi
                 </Button>
@@ -265,7 +265,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="button"
                   variant={formData.gender === "erkek" ? "default" : "outline"}
                   className={cn("h-12", formData.gender === "erkek" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, gender: "erkek" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, gender: "erkek" }))}
                 >
                   Erkek
                 </Button>
@@ -288,7 +288,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                         ? "border-meradan-green bg-meradan-green/5"
                         : "border-border hover:border-meradan-green/50",
                     )}
-                    onClick={() => setListingFormData((prev) => ({ ...prev, breed: breed.value }))}
+                    onClick={() => setFormData((prev) => ({ ...prev, breed: breed.value }))}
                   >
                     <div className="w-10 h-10 rounded-full overflow-hidden relative flex-shrink-0">
                       <Image src={breed.image || "/placeholder.svg"} alt={breed.label} fill className="object-cover" />
@@ -316,7 +316,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                         ? "bg-meradan-green text-white"
                         : "bg-muted text-foreground hover:bg-muted/80",
                     )}
-                    onClick={() => setListingFormData((prev) => ({ ...prev, age }))}
+                    onClick={() => setFormData((prev) => ({ ...prev, age }))}
                   >
                     {age}
                   </button>
@@ -334,7 +334,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="number"
                   placeholder="Örn: 450"
                   value={formData.weight}
-                  onChange={(e) => setListingFormData((prev) => ({ ...prev, weight: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, weight: e.target.value }))}
                   className="h-12 pr-12 text-lg"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">kg</span>
@@ -377,8 +377,8 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
               <LocationSelector
                 selectedCity={formData.city}
                 selectedDistrict={formData.district}
-                onCityChange={(city) => setListingFormData((prev) => ({ ...prev, city, district: "" }))}
-                onDistrictChange={(district) => setListingFormData((prev) => ({ ...prev, district }))}
+                onCityChange={(city) => setFormData((prev) => ({ ...prev, city, district: "" }))}
+                onDistrictChange={(district) => setFormData((prev) => ({ ...prev, district }))}
               />
             </div>
 
@@ -393,7 +393,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                     "h-12",
                     formData.animalType === "koyun" && "bg-meradan-green hover:bg-meradan-green/90",
                   )}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, animalType: "koyun" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, animalType: "koyun" }))}
                 >
                   Koyun
                 </Button>
@@ -401,7 +401,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="button"
                   variant={formData.animalType === "keci" ? "default" : "outline"}
                   className={cn("h-12", formData.animalType === "keci" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, animalType: "keci" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, animalType: "keci" }))}
                 >
                   Keçi
                 </Button>
@@ -416,7 +416,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="button"
                   variant={formData.saleType === "tekli" ? "default" : "outline"}
                   className={cn("h-12", formData.saleType === "tekli" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, saleType: "tekli" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, saleType: "tekli" }))}
                 >
                   Tekli Satış
                 </Button>
@@ -424,7 +424,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="button"
                   variant={formData.saleType === "toplu" ? "default" : "outline"}
                   className={cn("h-12", formData.saleType === "toplu" && "bg-meradan-green hover:bg-meradan-green/90")}
-                  onClick={() => setListingFormData((prev) => ({ ...prev, saleType: "toplu" }))}
+                  onClick={() => setFormData((prev) => ({ ...prev, saleType: "toplu" }))}
                 >
                   Toplu Satış
                 </Button>
@@ -439,7 +439,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="number"
                   placeholder="Kaç adet?"
                   value={formData.quantity}
-                  onChange={(e) => setListingFormData((prev) => ({ ...prev, quantity: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
                   className="h-12 text-lg"
                 />
               </div>
@@ -461,7 +461,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                         ? "border-meradan-green bg-meradan-green/5"
                         : "border-border hover:border-meradan-green/50",
                     )}
-                    onClick={() => setListingFormData((prev) => ({ ...prev, breed: breed.value }))}
+                    onClick={() => setFormData((prev) => ({ ...prev, breed: breed.value }))}
                   >
                     <div className="w-12 h-12 rounded-full overflow-hidden relative flex-shrink-0">
                       <Image src={breed.image || "/placeholder.svg"} alt={breed.label} fill className="object-cover" />
@@ -520,7 +520,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   type="number"
                   placeholder="0"
                   value={formData.price}
-                  onChange={(e) => setListingFormData((prev) => ({ ...prev, price: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
                   className="h-14 pl-10 text-2xl font-bold"
                 />
               </div>
