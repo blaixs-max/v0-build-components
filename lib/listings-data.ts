@@ -22,25 +22,25 @@ export interface Listing {
   createdAt?: string
 }
 
-// Image URLs for livestock
+// Image URLs for livestock - using reliable CDN sources
 const CATTLE_IMAGES = {
-  simental: "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=800&q=80",
-  simental2: "https://images.unsplash.com/photo-1527153857715-3908f2bae5e8?w=800&q=80",
-  holstein: "https://images.unsplash.com/photo-1546445317-29f4545e9d53?w=800&q=80",
-  holstein2: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=800&q=80",
-  brownSwiss: "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800&q=80",
-  angus: "https://images.unsplash.com/photo-1545468800-85cc9bc6ecf7?w=800&q=80",
-  angus2: "https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?w=800&q=80",
-  jersey: "https://images.unsplash.com/photo-1595365691689-6b7b4e1970cf?w=800&q=80",
-  cow: "https://images.unsplash.com/photo-1493689485253-f07fcbfc731b?w=800&q=80",
+  simental: "https://images.pexels.com/photos/422218/pexels-photo-422218.jpeg?auto=compress&cs=tinysrgb&w=800",
+  simental2: "https://images.pexels.com/photos/735968/pexels-photo-735968.jpeg?auto=compress&cs=tinysrgb&w=800",
+  holstein: "https://images.pexels.com/photos/162240/bull-calf-heifer-beef-162240.jpeg?auto=compress&cs=tinysrgb&w=800",
+  holstein2: "https://images.pexels.com/photos/2165688/pexels-photo-2165688.jpeg?auto=compress&cs=tinysrgb&w=800",
+  brownSwiss: "https://images.pexels.com/photos/458991/pexels-photo-458991.jpeg?auto=compress&cs=tinysrgb&w=800",
+  angus: "https://images.pexels.com/photos/457447/pexels-photo-457447.jpeg?auto=compress&cs=tinysrgb&w=800",
+  angus2: "https://images.pexels.com/photos/2252618/pexels-photo-2252618.jpeg?auto=compress&cs=tinysrgb&w=800",
+  jersey: "https://images.pexels.com/photos/936461/pexels-photo-936461.jpeg?auto=compress&cs=tinysrgb&w=800",
+  cow: "https://images.pexels.com/photos/1308123/pexels-photo-1308123.jpeg?auto=compress&cs=tinysrgb&w=800",
 }
 
 const SHEEP_IMAGES = {
-  merino: "https://images.unsplash.com/photo-1484557985045-edf25e08da73?w=800&q=80",
-  sheep: "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=800&q=80",
-  sheep2: "https://images.unsplash.com/photo-1533318087102-b3ad366ed041?w=800&q=80",
-  lamb: "https://images.unsplash.com/photo-1551884170-09fb70a3a2ed?w=800&q=80",
-  ram: "https://images.unsplash.com/photo-1605044665011-d2b5eb9b32fc?w=800&q=80",
+  merino: "https://images.pexels.com/photos/288621/pexels-photo-288621.jpeg?auto=compress&cs=tinysrgb&w=800",
+  sheep: "https://images.pexels.com/photos/693776/pexels-photo-693776.jpeg?auto=compress&cs=tinysrgb&w=800",
+  sheep2: "https://images.pexels.com/photos/1447349/pexels-photo-1447349.jpeg?auto=compress&cs=tinysrgb&w=800",
+  lamb: "https://images.pexels.com/photos/2651822/pexels-photo-2651822.jpeg?auto=compress&cs=tinysrgb&w=800",
+  ram: "https://images.pexels.com/photos/6469/red-animal-farm-countryside.jpg?auto=compress&cs=tinysrgb&w=800",
 }
 
 export const demoListings: Listing[] = [
