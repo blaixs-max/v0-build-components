@@ -44,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr">
+    <html lang="tr" className="bg-background">
       <body className={`font-sans antialiased`}>
         <UserProvider>{children}</UserProvider>
         <Analytics />
