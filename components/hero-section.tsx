@@ -77,13 +77,13 @@ export function HeroSection({
           label="Büyükbaş"
           selected={selectedCategory === "buyukbas"}
           onClick={() => onCategorySelect("buyukbas")}
-          icon={<CowIcon />}
+          iconSrc="/images/icon-buyukbas.png"
         />
         <CategoryCircle
           label="Küçükbaş"
           selected={selectedCategory === "kucukbas"}
           onClick={() => onCategorySelect("kucukbas")}
-          icon={<SheepIcon />}
+          iconSrc="/images/icon-kucukbas.png"
         />
       </div>
     </section>
@@ -94,12 +94,12 @@ function CategoryCircle({
   label,
   selected,
   onClick,
-  icon,
+  iconSrc,
 }: {
   label: string
   selected: boolean
   onClick: () => void
-  icon: React.ReactNode
+  iconSrc: string
 }) {
   return (
     <button
@@ -112,69 +112,16 @@ function CategoryCircle({
         selected ? "border-meradan-green ring-4 ring-meradan-green/15" : "border-meradan-green/70",
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center text-meradan-green md:h-14 md:w-14">
-        {icon}
+      <div className="relative h-14 w-14 md:h-16 md:w-16">
+        <Image
+          src={iconSrc}
+          alt=""
+          fill
+          sizes="64px"
+          className="object-contain"
+        />
       </div>
       <span className="mt-1 text-[15px] font-semibold text-foreground md:text-base">{label}</span>
     </button>
-  )
-}
-
-function CowIcon() {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" className="h-full w-full" aria-hidden="true">
-      <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        {/* Head */}
-        <ellipse cx="20" cy="22" rx="8" ry="7" />
-        {/* Ears */}
-        <path d="M13 18 Q10 14 12 12 Q15 13 15 17" />
-        <path d="M27 18 Q30 14 28 12 Q25 13 25 17" />
-        {/* Horns */}
-        <path d="M16 15 Q15 11 17 10" />
-        <path d="M24 15 Q25 11 23 10" />
-        {/* Nose/muzzle */}
-        <ellipse cx="20" cy="25" rx="3" ry="2" />
-        {/* Eyes */}
-        <circle cx="17" cy="21" r="0.6" fill="currentColor" />
-        <circle cx="23" cy="21" r="0.6" fill="currentColor" />
-        {/* Body */}
-        <path d="M28 26 Q34 22 44 24 Q52 25 54 32 L54 40 Q52 44 48 44 L44 44" />
-        <path d="M28 30 Q30 34 32 38 L32 44" />
-        {/* Legs */}
-        <line x1="32" y1="44" x2="32" y2="52" />
-        <line x1="38" y1="44" x2="38" y2="52" />
-        <line x1="46" y1="44" x2="46" y2="52" />
-        <line x1="52" y1="44" x2="52" y2="52" />
-        {/* Tail */}
-        <path d="M54 30 Q58 30 58 36" />
-        {/* Udder hint */}
-        <circle cx="42" cy="45" r="1.2" fill="currentColor" />
-      </g>
-    </svg>
-  )
-}
-
-function SheepIcon() {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" className="h-full w-full" aria-hidden="true">
-      <g stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none">
-        {/* Woolly body - cloud-like */}
-        <path d="M16 32 Q13 28 17 25 Q18 20 24 21 Q27 17 33 19 Q38 17 42 21 Q48 20 49 26 Q53 28 50 33 Q52 37 47 39 Q45 43 40 42 L26 42 Q21 43 19 39 Q14 37 16 32 Z" />
-        {/* Head */}
-        <ellipse cx="46" cy="30" rx="6" ry="7" />
-        {/* Ears */}
-        <path d="M41 25 Q38 23 39 27" />
-        <path d="M51 25 Q54 23 53 27" />
-        {/* Eye */}
-        <circle cx="47" cy="29" r="0.7" fill="currentColor" />
-        {/* Nose */}
-        <path d="M49 33 L50 34" />
-        {/* Legs */}
-        <line x1="24" y1="42" x2="24" y2="52" />
-        <line x1="30" y1="42" x2="30" y2="52" />
-        <line x1="38" y1="42" x2="38" y2="52" />
-        <line x1="44" y1="42" x2="44" y2="52" />
-      </g>
-    </svg>
   )
 }
