@@ -6,6 +6,7 @@ import { ArrowLeft, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/user-context"
 import { ListingCard } from "@/components/listing-card"
+import { SiteHeader } from "@/components/site-header"
 import { demoListings } from "@/lib/listings-data"
 
 export default function FavorilerimPage() {
@@ -24,18 +25,20 @@ export default function FavorilerimPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background border-b">
-        <div className="flex items-center gap-3 px-4 py-3">
+      <SiteHeader />
+
+      {/* Sayfa Alt Başlığı */}
+      <div className="border-b border-border/60 bg-card">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 md:px-6 lg:px-10">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-10 w-10">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">Favorilerim</h1>
+          <h1 className="text-lg font-semibold text-foreground">Favorilerim</h1>
           <span className="ml-auto text-sm text-muted-foreground">{favoriteListings.length} ilan</span>
         </div>
-      </header>
+      </div>
 
-      <main className="pb-8">
+      <main className="mx-auto max-w-7xl pb-8">
         {favoriteListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -50,7 +53,7 @@ export default function FavorilerimPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 p-4">
+          <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-3 md:gap-4 md:px-6 lg:grid-cols-4 lg:px-10">
             {favoriteListings.map((listing) => (
               <ListingCard key={listing.id} {...listing} onFavoriteClick={toggleFavorite} />
             ))}

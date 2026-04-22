@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BottomNavigation } from "@/components/bottom-navigation"
+import { SiteHeader } from "@/components/site-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
@@ -119,17 +120,19 @@ export default function TekliflerimPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="flex items-center gap-3 px-4 py-4">
+      <SiteHeader />
+
+      {/* Sayfa Alt Başlığı */}
+      <div className="border-b border-border/60 bg-card">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 md:px-6 lg:px-10">
           <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">Tekliflerim</h1>
+          <h1 className="text-lg font-semibold text-foreground">Tekliflerim</h1>
         </div>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 lg:px-10">
         <Tabs defaultValue="sent" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="sent">Gönderdiğim ({myOffers.length})</TabsTrigger>

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,17 +73,15 @@ export default function GirisPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       {/* Logo */}
       <div className="mb-8 text-center">
-        <div className="w-20 h-20 bg-meradan-green rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" className="w-12 h-12">
-            <path d="M12 4c-1.5 0-3 .5-4 1.5C7 6.5 6 8 6 10c0 1.5.5 2.5 1 3.5.5 1 1 2 1 3.5v3h8v-3c0-1.5.5-2.5 1-3.5.5-1 1-2 1-3.5 0-2-1-3.5-2-4.5-1-1-2.5-1.5-4-1.5z" />
-            <path d="M9 7c-.5.5-1 1.5-1 3M15 7c.5.5 1 1.5 1 3" />
-            <ellipse cx="9" cy="11" rx="1" ry="1.5" fill="white" />
-            <ellipse cx="15" cy="11" rx="1" ry="1.5" fill="white" />
-            <path d="M8 4c-1-1-2-1.5-3-1.5M16 4c1-1 2-1.5 3-1.5" />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-bold text-meradan-green">Mera'dan</h1>
-        <p className="text-muted-foreground text-sm">Türkiye'nin Hayvan Pazarı</p>
+        <Image
+          src="/images/meradan-logo.png"
+          alt="Meradan"
+          width={340}
+          height={100}
+          priority
+          className="mx-auto mb-3 h-14 w-auto"
+        />
+        <p className="text-muted-foreground text-sm">Türkiye&apos;nin Hayvan Pazarı</p>
       </div>
 
       {/* Giriş Formu */}

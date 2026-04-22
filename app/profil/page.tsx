@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { BottomNavigation } from "@/components/bottom-navigation"
+import { SiteHeader } from "@/components/site-header"
 import { PhoneVerificationModal } from "@/components/phone-verification-modal"
 import { TrustScoreCard } from "@/components/trust-score-card"
 
@@ -69,8 +70,10 @@ export default function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      <SiteHeader />
+
       {/* Header */}
-      <div className="bg-meradan-green px-4 pt-8 pb-12">
+      <div className="bg-meradan-green px-4 pt-8 pb-12 md:px-6 lg:px-10">
         <div className="flex items-center gap-4">
           <div className="relative">
             <Avatar className="h-20 w-20 border-4 border-white shadow-lg">

@@ -27,6 +27,7 @@ import { getListingById } from "@/lib/listings-data"
 import { useUser } from "@/contexts/user-context"
 import { OfferModal } from "@/components/offer-modal"
 import { OffersList } from "@/components/offers-list"
+import { SiteHeader } from "@/components/site-header"
 
 export default function ListingDetailPage() {
   const params = useParams()
@@ -77,9 +78,11 @@ export default function ListingDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-        <div className="flex items-center justify-between p-4">
+      <SiteHeader />
+
+      {/* Sayfa Alt Başlığı */}
+      <header className="border-b border-border/60 bg-card">
+        <div className="mx-auto flex max-w-7xl items-center justify-between p-4 md:px-6 lg:px-10">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
