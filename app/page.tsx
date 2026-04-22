@@ -1,55 +1,49 @@
 "use client"
 
 import { useState, useMemo, useRef } from "react"
-import { SearchHeader } from "@/components/search-header"
-import { CategoryFilterBar, type SortOption, type ViewMode } from "@/components/category-filter-bar"
-import { type FilterValues, PRICE_OPTIONS } from "@/components/filter-bar"
-import { ListingGrid } from "@/components/listing-grid"
-import { BottomNavigation } from "@/components/bottom-navigation"
-import { CreateListingWizard, type ListingFormData } from "@/components/create-listing-wizard"
+import { SiteHeader } from "@/components/site-header"
+import { HeroSection } from "@/components/hero-section"
+import { FeaturedListings } from "@/components/featured-listings"
+import { ListingToolbar, type SortOption, type ViewMode } from "@/components/listing-toolbar"
 import { SearchFilterDrawer } from "@/components/search-filter-drawer"
+import { CreateListingWizard, type ListingFormData } from "@/components/create-listing-wizard"
+import { BottomNavigation } from "@/components/bottom-navigation"
+import type { FilterValues } from "@/components/filter-bar"
+import { PRICE_OPTIONS } from "@/components/filter-bar"
 import { useUser } from "@/contexts/user-context"
 import { demoListings } from "@/lib/listings-data"
 
+const DEFAULT_FILTERS: FilterValues = {
+  price: "all",
+  breed: "all",
+  priceType: "all",
+  city: "all",
+}
+
 export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<"buyukbas" | "kucukbas">("buyukbas")
-  const [activeTab, setActiveTab] = useState("home")
   const [listings, setListings] = useState(demoListings)
-  const [filters, setFilters] = useState<FilterValues>({ price: "all", breed: "all", priceType: "all", city: "all" })
   const [searchQuery, setSearchQuery] = useState("")
   const [showCreateWizard, setShowCreateWizard] = useState(false)
+  const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS)
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [sortOption, setSortOption] = useState<SortOption>("newest")
-  const [showFilterDrawer, setShowFilterDrawer] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [activeTab, setActiveTab] = useState<string>("home")
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { toggleFavorite, isFavorite, addMyListing, addCreatedListing } = useUser()
-
-  const handleFavoriteClick = (id: string) => {
-    toggleFavorite(id)
-  }
-
-  const handleFilterChange = (key: keyof FilterValues, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const handleClearFilters = () => {
-    setFilters({ price: "all", breed: "all", priceType: "all", city: "all" })
-  }
-
   const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
     if (tab === "create") {
       setShowCreateWizard(true)
     } else if (tab === "search") {
-      setActiveTab(tab)
-      // Arama inputuna focus ver
-      setTimeout(() => {
-        searchInputRef.current?.focus()
-      }, 100)
-    } else {
-      setActiveTab(tab)
+      // Ana sayfadaki hero arama alanına odaklan
+      searchInputRef.current?.focus()
+      searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
     }
   }
+
+  const { addMyListing, addCreatedListing } = useUser()
 
   const handleCreateListing = (data: ListingFormData) => {
     const newId = `user_${Date.now()}`
@@ -74,134 +68,120 @@ export default function HomePage() {
     addMyListing(newId)
     setListings((prev) => [newListing, ...prev])
     setShowCreateWizard(false)
-    setActiveTab("home")
   }
 
+  const handleFilterChange = (key: keyof FilterValues, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleClearFilters = () => setFilters(DEFAULT_FILTERS)
+
   const activeFilterCount = useMemo(() => {
-    let count = 0
-    if (filters.price !== "all") count++
-    if (filters.breed !== "all") count++
-    if (filters.priceType !== "all") count++
-    if (filters.city !== "all") count++
-    return count
+    return (Object.keys(filters) as (keyof FilterValues)[]).reduce(
+      (count, key) => count + (filters[key] !== "all" ? 1 : 0),
+      0,
+    )
   }, [filters])
 
-  const filteredListings = useMemo(() => {
-    let result = listings.filter((listing) => {
-      if (listing.category !== selectedCategory) return false
+  const featuredListings = useMemo(() => {
+    let result = listings.filter((listing) => listing.category === selectedCategory)
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase()
-        const matchesSearch =
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(
+        (listing) =>
           listing.title.toLowerCase().includes(query) ||
           listing.location.toLowerCase().includes(query) ||
-          listing.breed.toLowerCase().includes(query)
-        if (!matchesSearch) return false
+          listing.breed.toLowerCase().includes(query) ||
+          listing.city.toLowerCase().includes(query),
+      )
+    }
+
+    // Fiyat aralığı filtresi
+    if (filters.price !== "all") {
+      const priceRange = PRICE_OPTIONS.find((opt) => opt.value === filters.price)
+      if (priceRange) {
+        result = result.filter((l) => l.price >= priceRange.min && l.price <= priceRange.max)
       }
+    }
 
-      if (filters.price !== "all") {
-        const priceOption = PRICE_OPTIONS.find((opt) => opt.value === filters.price)
-        if (priceOption) {
-          if (listing.price < priceOption.min || listing.price > priceOption.max) return false
-        }
-      }
+    // Cins filtresi
+    if (filters.breed !== "all") {
+      result = result.filter((l) => l.breed.toLowerCase() === filters.breed.toLowerCase())
+    }
 
-      if (filters.breed !== "all" && listing.breed !== filters.breed) return false
-      if (filters.priceType !== "all" && listing.priceType !== filters.priceType) return false
+    // Fiyat tipi filtresi
+    if (filters.priceType !== "all") {
+      result = result.filter((l) => l.priceType === filters.priceType)
+    }
 
-      if (filters.city !== "all") {
-        const cityMap: Record<string, string> = {
-          ankara: "Ankara",
-          balikesir: "Balıkesir",
-          bursa: "Bursa",
-          izmir: "İzmir",
-          konya: "Konya",
-          manisa: "Manisa",
-          samsun: "Samsun",
-        }
-        if (listing.city !== cityMap[filters.city]) return false
-      }
+    // Şehir filtresi (şehir veya şehir:ilçe formatında)
+    if (filters.city !== "all") {
+      const cityValue = filters.city.split(":")[0]
+      result = result.filter((l) => l.city.toLowerCase() === cityValue.toLowerCase())
+    }
 
-      return true
-    })
-
+    // Sıralama
+    const sorted = [...result]
     switch (sortOption) {
       case "price-low":
-        result = [...result].sort((a, b) => a.price - b.price)
+        sorted.sort((a, b) => a.price - b.price)
         break
       case "price-high":
-        result = [...result].sort((a, b) => b.price - a.price)
+        sorted.sort((a, b) => b.price - a.price)
         break
       case "newest":
+        sorted.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))
+        break
       case "closest":
-      default:
+        // Konum bilgisi olmadığı için mevcut sırayı koruyoruz
         break
     }
 
-    return result
+    return sorted.slice(0, 12)
   }, [listings, selectedCategory, searchQuery, filters, sortOption])
-
-  const filteredListingsWithFavorites = useMemo(() => {
-    return filteredListings.map((listing) => ({
-      ...listing,
-      isFavorite: isFavorite(listing.id),
-    }))
-  }, [filteredListings, isFavorite])
 
   if (showCreateWizard) {
     return <CreateListingWizard onClose={() => setShowCreateWizard(false)} onSubmit={handleCreateListing} />
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <SearchHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} inputRef={searchInputRef} />
-
-      <main className="pb-20">
-        <CategoryFilterBar
+    <div className="min-h-screen bg-background pb-20">
+      <SiteHeader />
+      <main>
+        <HeroSection
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           selectedCategory={selectedCategory}
           onCategorySelect={setSelectedCategory}
-          onFilterClick={() => setShowFilterDrawer(true)}
-          sortOption={sortOption}
-          onSortChange={setSortOption}
-          activeFilterCount={activeFilterCount}
+          inputRef={searchInputRef}
+        />
+        <FeaturedListings
+          listings={featuredListings}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          toolbar={
+            <ListingToolbar
+              onFilterClick={() => setFilterDrawerOpen(true)}
+              activeFilterCount={activeFilterCount}
+              sortOption={sortOption}
+              onSortChange={setSortOption}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+            />
+          }
         />
-
-        <SearchFilterDrawer
-          filters={filters}
-          category={selectedCategory}
-          onFilterChange={handleFilterChange}
-          onCategoryChange={setSelectedCategory}
-          onClearFilters={handleClearFilters}
-          onApply={() => setShowFilterDrawer(false)}
-          open={showFilterDrawer}
-          onOpenChange={setShowFilterDrawer}
-        />
-
-        <div className="mt-3">
-          {filteredListingsWithFavorites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="text-6xl mb-4">{selectedCategory === "buyukbas" ? "🐄" : "🐑"}</div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">İlan bulunamadı</h3>
-              <p className="text-sm text-muted-foreground">
-                Arama kriterlerinize uygun ilan bulunamadı. Filtreleri değiştirmeyi deneyin.
-              </p>
-            </div>
-          ) : (
-            <>
-              <p className="px-4 text-sm text-muted-foreground mb-3">
-                {filteredListingsWithFavorites.length} ilan bulundu
-              </p>
-              <ListingGrid
-                listings={filteredListingsWithFavorites}
-                onFavoriteClick={handleFavoriteClick}
-                viewMode={viewMode}
-              />
-            </>
-          )}
-        </div>
       </main>
+
+      <SearchFilterDrawer
+        filters={filters}
+        category={selectedCategory}
+        onFilterChange={handleFilterChange}
+        onCategoryChange={setSelectedCategory}
+        onClearFilters={handleClearFilters}
+        onApply={() => setFilterDrawerOpen(false)}
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
+      />
 
       <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
