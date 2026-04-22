@@ -18,6 +18,7 @@ export function FeaturedListings({ listings }: FeaturedListingsProps) {
             city={listing.city}
             price={listing.price}
             imageUrl={listing.imageUrl}
+            videoUrl={listing.videoUrl}
           />
         ))}
       </div>

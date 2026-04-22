@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { MapPin } from "lucide-react"
+import { MapPin, PlayCircle } from "lucide-react"
 
 interface FeaturedListingCardProps {
   id: string
@@ -10,10 +10,12 @@ interface FeaturedListingCardProps {
   city: string
   price: number
   imageUrl: string
+  videoUrl?: string | null
 }
 
-export function FeaturedListingCard({ id, title, city, price, imageUrl }: FeaturedListingCardProps) {
+export function FeaturedListingCard({ id, title, city, price, imageUrl, videoUrl }: FeaturedListingCardProps) {
   const formatPrice = (value: number) => new Intl.NumberFormat("tr-TR").format(value)
+  const hasVideo = Boolean(videoUrl)
 
   return (
     <Link
@@ -28,6 +30,12 @@ export function FeaturedListingCard({ id, title, city, price, imageUrl }: Featur
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
+        {hasVideo && (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-meradan-green px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+            <PlayCircle className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Videolu İlan
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-1 p-4">
         <div className="flex items-center justify-between gap-2">
