@@ -7,6 +7,7 @@ import { FeaturedListings } from "@/components/featured-listings"
 import { ListingToolbar, type SortOption, type ViewMode } from "@/components/listing-toolbar"
 import { SearchFilterDrawer } from "@/components/search-filter-drawer"
 import { CreateListingWizard, type ListingFormData } from "@/components/create-listing-wizard"
+import { BottomNavigation } from "@/components/bottom-navigation"
 import type { FilterValues } from "@/components/filter-bar"
 import { PRICE_OPTIONS } from "@/components/filter-bar"
 import { useUser } from "@/contexts/user-context"
@@ -28,7 +29,19 @@ export default function HomePage() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [sortOption, setSortOption] = useState<SortOption>("newest")
   const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [activeTab, setActiveTab] = useState<string>("home")
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    if (tab === "create") {
+      setShowCreateWizard(true)
+    } else if (tab === "search") {
+      // Ana sayfadaki hero arama alanına odaklan
+      searchInputRef.current?.focus()
+      searchInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }
 
   const { addMyListing, addCreatedListing } = useUser()
 
@@ -133,7 +146,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <SiteHeader />
       <main>
         <HeroSection
@@ -169,6 +182,8 @@ export default function HomePage() {
         open={filterDrawerOpen}
         onOpenChange={setFilterDrawerOpen}
       />
+
+      <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   )
 }
