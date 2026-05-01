@@ -55,7 +55,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-meradan-green safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-inset-bottom">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => {
           const active = isActive(item)
@@ -65,7 +65,7 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
               onClick={() => handleNavClick(item)}
               className={cn(
                 "flex flex-col items-center justify-center min-w-[64px] py-1 transition-colors",
-                active ? "text-white" : "text-white/70",
+                active ? "text-meradan-green" : "text-muted-foreground",
               )}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
