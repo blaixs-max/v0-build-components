@@ -58,6 +58,7 @@ export async function GET(
         healthStatus: row.health_status,
         vaccination: row.vaccination,
         status: row.status,
+        videoUrl: row.video_url,
         views: row.views + 1,
         createdAt: row.created_at,
         userId: row.user_id,

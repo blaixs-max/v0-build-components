@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
       healthStatus: row.health_status,
       vaccination: row.vaccination,
       status: row.status,
+      videoUrl: row.video_url,
       views: row.views,
       createdAt: row.created_at,
       sellerName: row.seller_name,
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
         user_id, title, animal_type, breed, age, weight, gender,
         price, price_type, location, city, description,
         image_url, images, ear_tag, enterprise_no, enterprise_label,
-        quantity, health_status, vaccination
+        quantity, health_status, vaccination, video_url
       ) VALUES (
         ${session.id}, ${body.title}, ${body.animalType}, ${body.breed || null},
         ${body.age || null}, ${body.weight || null}, ${body.gender || null},
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
         ${body.images || []}, ${body.earTag || null},
         ${body.enterpriseNo || null}, ${body.enterpriseLabel || null},
         ${body.quantity || 1}, ${body.healthStatus || null},
-        ${body.vaccination || false}
+        ${body.vaccination || false}, ${body.videoUrl || null}
       )
       RETURNING id
     `
