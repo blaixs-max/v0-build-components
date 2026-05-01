@@ -228,7 +228,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <SiteHeader />
+      <SiteHeader onCreateListing={() => setShowCreateWizard(true)} />
       <main>
         <HeroSection
           searchQuery={searchQuery}
