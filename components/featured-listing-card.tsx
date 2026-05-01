@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Heart, MapPin, PlayCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { buildWhatsAppShareText } from "@/lib/share-utils"
 
 interface FeaturedListingCardProps {
   id: string
@@ -39,7 +40,7 @@ export function FeaturedListingCard({
   const handleWhatsAppShare = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    const shareText = `${title}\n${formatPrice(price)} TL\n${city}\n\n${window.location.origin}/ilan/${id}`
+    const shareText = buildWhatsAppShareText({ title, price: formatPrice(price), location: city, listingId: id })
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
     window.open(whatsappUrl, "_blank")
   }

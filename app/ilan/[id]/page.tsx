@@ -29,6 +29,7 @@ import { OfferModal } from "@/components/offer-modal"
 import { OffersList } from "@/components/offers-list"
 import { SiteHeader } from "@/components/site-header"
 import { formatEnterpriseDisplay } from "@/lib/enterprise-validation"
+import { getListingShareUrl } from "@/lib/share-utils"
 
 interface ListingDetail {
   id: string
@@ -123,9 +124,9 @@ export default function ListingDetailPage() {
   }
 
   const handleShare = () => {
-    const shareUrl = `${window.location.origin}/ilan/${listing.id}`
-    const shareText = `${listing.title} - ₺${formatPrice(listing.price)}\n📍 ${listing.location}\n\nMera'dan uygulamasında bu ilana göz atın:`
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + "\n" + shareUrl)}`
+    const shareUrl = getListingShareUrl(listing.id)
+    const shareText = `${listing.title} - ${formatPrice(listing.price)} TL\n${listing.location}\n\n${shareUrl}`
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
     window.open(whatsappUrl, "_blank")
   }
 
