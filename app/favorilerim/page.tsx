@@ -1,27 +1,38 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useUser } from "@/contexts/user-context"
 import { ListingCard } from "@/components/listing-card"
 import { SiteHeader } from "@/components/site-header"
-import { demoListings } from "@/lib/listings-data"
+import type { Listing } from "@/lib/listings-data"
 
 export default function FavorilerimPage() {
   const router = useRouter()
-  const { favorites, toggleFavorite, userCreatedListings } = useUser()
+  const { favorites, toggleFavorite } = useUser()
+  const [allListings, setAllListings] = useState<Listing[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const favoriteListings = useMemo(() => {
-    const allListings = [...demoListings, ...userCreatedListings]
-    return allListings
-      .filter((listing) => favorites.includes(listing.id))
-      .map((listing) => ({
-        ...listing,
-        isFavorite: true,
-      }))
-  }, [favorites, userCreatedListings])
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        const res = await fetch("/api/listings")
+        const data = await res.json()
+        setAllListings(data.listings || [])
+      } catch {
+        setAllListings([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchListings()
+  }, [])
+
+  const favoriteListings = allListings
+    .filter((listing) => favorites.includes(listing.id))
+    .map((listing) => ({ ...listing, isFavorite: true }))
 
   return (
     <div className="min-h-screen bg-background">
