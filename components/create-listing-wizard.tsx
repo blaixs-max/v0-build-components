@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
-import { ArrowLeft, Camera, X, Check, Video, Building2 } from "lucide-react"
+import { ArrowLeft, Camera, X, Check, Video, Building2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -87,6 +87,11 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
   const [formData, setFormData] = useState<ListingFormData>(initialFormData)
   const [enterpriseMode, setEnterpriseMode] = useState<"saved" | "manual">("saved")
   const [enterpriseError, setEnterpriseError] = useState("")
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const { enterpriseNumbers, isLoggedIn } = useUser()
 
   const handleCategorySelect = (category: Category) => {
@@ -119,22 +124,70 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
     }))
   }
 
-  const handlePhotoUpload = () => {
-    const demoPhotos = ["/simental-bull-cattle.jpg", "/simental-cow-cattle.jpg"]
-    if (formData.photos.length < 5) {
-      setFormData((prev) => ({
-        ...prev,
-        photos: [...prev.photos, demoPhotos[prev.photos.length % 2]],
-      }))
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadError("")
+    setIsUploadingPhoto(true)
+
+    try {
+      const remainingSlots = 5 - formData.photos.length
+      const filesToUpload = Array.from(files).slice(0, remainingSlots)
+
+      for (const file of filesToUpload) {
+        if (file.size > 5 * 1024 * 1024) {
+          setUploadError(`${file.name}: Maksimum 5MB olabilir.`)
+          continue
+        }
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("type", "photo")
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        const data = await res.json()
+        if (!res.ok) {
+          setUploadError(data.error || "Yükleme hatası")
+          continue
+        }
+        setFormData((prev) => ({
+          ...prev,
+          photos: [...prev.photos, data.url],
+        }))
+      }
+    } catch {
+      setUploadError("Fotoğraf yüklenirken bir hata oluştu.")
+    } finally {
+      setIsUploadingPhoto(false)
+      if (photoInputRef.current) photoInputRef.current.value = ""
     }
   }
 
-  const handleVideoUpload = () => {
-    const demoVideo = "https://www.w3schools.com/html/mov_bbb.mp4"
-    setFormData((prev) => ({
-      ...prev,
-      video: demoVideo,
-    }))
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError("")
+    setIsUploadingVideo(true)
+
+    try {
+      if (file.size > 50 * 1024 * 1024) {
+        setUploadError("Video boyutu en fazla 50MB olabilir.")
+        return
+      }
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("type", "video")
+      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setUploadError(data.error || "Video yükleme hatası")
+        return
+      }
+      setFormData((prev) => ({ ...prev, video: data.url }))
+    } catch {
+      setUploadError("Video yüklenirken bir hata oluştu.")
+    } finally {
+      setIsUploadingVideo(false)
+      if (videoInputRef.current) videoInputRef.current.value = ""
+    }
   }
 
   const removeVideo = () => {
@@ -685,6 +738,12 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
           <div className="space-y-6">
             <h2 className="text-xl font-bold text-foreground">Fiyat ve Medya</h2>
 
+            {uploadError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{uploadError}</p>
+              </div>
+            )}
+
             {/* Seçilen Konum Özeti */}
             {getLocationDisplay() && (
               <div className="p-3 bg-meradan-green/10 rounded-lg">
@@ -748,19 +807,38 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
               )}
 
               {formData.photos.length < 5 && (
-                <button
-                  type="button"
-                  onClick={handlePhotoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-green/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Fotoğraf Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">En az 1, en fazla 5 fotoğraf</p>
-                  </div>
-                </button>
+                <>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    multiple
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-green/50 hover:bg-muted/50 transition-all disabled:opacity-50"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                      {isUploadingPhoto ? (
+                        <Loader2 className="h-8 w-8 text-meradan-green animate-spin" />
+                      ) : (
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-foreground">
+                        {isUploadingPhoto ? "Yükleniyor..." : "Fotoğraf Ekle"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        JPG, PNG veya WebP - Maks. 5MB
+                      </p>
+                    </div>
+                  </button>
+                </>
               )}
             </div>
 
@@ -783,19 +861,37 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   </span>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleVideoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-orange/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-meradan-orange/10 flex items-center justify-center">
-                    <Video className="h-8 w-8 text-meradan-orange" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Video Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hayvanın videosunu ekleyin (Maks. 30 sn)</p>
-                  </div>
-                </button>
+                <>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    className="hidden"
+                    onChange={handleVideoUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploadingVideo}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-orange/50 hover:bg-muted/50 transition-all disabled:opacity-50"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-meradan-orange/10 flex items-center justify-center">
+                      {isUploadingVideo ? (
+                        <Loader2 className="h-8 w-8 text-meradan-orange animate-spin" />
+                      ) : (
+                        <Video className="h-8 w-8 text-meradan-orange" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-foreground">
+                        {isUploadingVideo ? "Video Yükleniyor..." : "Video Ekle"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        MP4 veya WebM - Maks. 50MB
+                      </p>
+                    </div>
+                  </button>
+                </>
               )}
             </div>
           </div>
