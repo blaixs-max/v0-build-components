@@ -270,11 +270,11 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 onClick={() => handleCategorySelect("buyukbas")}
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 relative">
-                    <Image src="/images/buyukbas.png" alt="Büyükbaş" fill className="object-contain" />
+                  <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center">
+                    <Image src="/images/icon-buyukbas.png" alt="Buyukbas" width={48} height={48} className="object-contain" />
                   </div>
-                  <span className="font-semibold text-foreground">Büyükbaş</span>
-                  <span className="text-xs text-muted-foreground">İnek, Boğa, Dana</span>
+                  <span className="font-semibold text-foreground">Buyukbas</span>
+                  <span className="text-xs text-muted-foreground">Inek, Boga, Dana</span>
                 </div>
               </Card>
 
@@ -288,11 +288,11 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 onClick={() => handleCategorySelect("kucukbas")}
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-20 h-20 relative">
-                    <Image src="/images/kucukbas.png" alt="Küçükbaş" fill className="object-contain" />
+                  <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center">
+                    <Image src="/images/icon-kucukbas.png" alt="Kucukbas" width={48} height={48} className="object-contain" />
                   </div>
-                  <span className="font-semibold text-foreground">Küçükbaş</span>
-                  <span className="text-xs text-muted-foreground">Koyun, Keçi, Kuzu</span>
+                  <span className="font-semibold text-foreground">Kucukbas</span>
+                  <span className="text-xs text-muted-foreground">Koyun, Keci, Kuzu</span>
                 </div>
               </Card>
             </div>

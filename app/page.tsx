@@ -30,6 +30,7 @@ interface DBListing {
   earTag: string
   enterpriseNo: string | null
   enterpriseLabel: string | null
+  videoUrl: string | null
   createdAt: string
   sellerName: string
   sellerPhone: string
@@ -166,6 +167,7 @@ export default function HomePage() {
         earTag: l.earTag,
         gender: l.gender,
         description: l.description,
+        videoUrl: l.videoUrl,
         sellerName: l.sellerName,
         sellerPhone: l.sellerPhone,
         createdAt: l.createdAt,
@@ -226,7 +228,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <SiteHeader />
+      <SiteHeader onCreateListing={() => setShowCreateWizard(true)} />
       <main>
         <HeroSection
           searchQuery={searchQuery}

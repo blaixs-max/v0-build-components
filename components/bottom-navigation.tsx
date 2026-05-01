@@ -63,14 +63,11 @@ export function BottomNavigation({ activeTab, onTabChange }: BottomNavigationPro
             <button
               key={item.href}
               onClick={() => handleNavClick(item)}
-              className={cn(
-                "flex flex-col items-center justify-center min-w-[64px] py-1 transition-colors",
-                active ? "text-meradan-green" : "text-muted-foreground",
-              )}
+              className="flex flex-col items-center justify-center min-w-[64px] py-1 text-meradan-green transition-colors"
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
             >
-              <span className={cn(active && "fill-current")}>{item.icon}</span>
+              {item.icon}
               <span className="text-[11px] mt-0.5 font-medium">{item.label}</span>
             </button>
           )

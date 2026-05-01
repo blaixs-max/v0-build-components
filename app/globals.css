@@ -137,6 +137,12 @@
 .border-meradan-orange {
   border-color: var(--meradan-orange);
 }
+.ring-meradan-green {
+  --tw-ring-color: var(--meradan-green);
+}
+.ring-meradan-green-light {
+  --tw-ring-color: color-mix(in srgb, var(--meradan-green) 25%, transparent);
+}
 .ring-meradan-orange {
   --tw-ring-color: var(--meradan-orange);
 }
