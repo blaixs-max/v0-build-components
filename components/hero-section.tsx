@@ -109,7 +109,7 @@ function CategoryCircle({
       className={cn(
         "group flex h-32 w-32 flex-col items-center justify-center rounded-full bg-card transition-all md:h-36 md:w-36",
         "shadow-lg hover:shadow-xl",
-        selected ? "border-[3px] border-meradan-green ring-4 ring-meradan-green/20" : "border-2 border-border",
+        selected ? "border-[3px] border-meradan-green ring-4 ring-meradan-green-light" : "border-2 border-border",
       )}
     >
       <div className="relative h-14 w-14 md:h-16 md:w-16">
