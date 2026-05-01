@@ -11,6 +11,7 @@ import { LocationSelector } from "@/components/location-selector"
 import { getCityByValue } from "@/lib/turkey-locations"
 import { useUser } from "@/contexts/user-context"
 import { validateEnterpriseNo, formatEnterpriseDisplay } from "@/lib/enterprise-validation"
+import { upload } from "@vercel/blob/client"
 
 type Category = "buyukbas" | "kucukbas" | null
 type Gender = "disi" | "erkek"
@@ -135,22 +136,22 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
       const filesToUpload = Array.from(files).slice(0, remainingSlots)
 
       for (const file of filesToUpload) {
-        if (file.size > 5 * 1024 * 1024) {
-          setUploadError(`${file.name}: Maksimum 5MB olabilir.`)
+        if (file.size > 50 * 1024 * 1024) {
+          setUploadError(`${file.name}: Maksimum 50MB olabilir.`)
           continue
         }
-        const fd = new FormData()
-        fd.append("file", file)
-        fd.append("type", "photo")
-        const res = await fetch("/api/upload", { method: "POST", body: fd })
-        const data = await res.json()
-        if (!res.ok) {
-          setUploadError(data.error || "Yükleme hatası")
-          continue
-        }
+        const timestamp = Date.now()
+        const ext = file.name.split(".").pop() || "jpg"
+        const pathname = `photos/${timestamp}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+
+        const blob = await upload(pathname, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        })
+
         setFormData((prev) => ({
           ...prev,
-          photos: [...prev.photos, data.url],
+          photos: [...prev.photos, blob.url],
         }))
       }
     } catch {
@@ -168,20 +169,20 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
     setIsUploadingVideo(true)
 
     try {
-      if (file.size > 50 * 1024 * 1024) {
-        setUploadError("Video boyutu en fazla 50MB olabilir.")
+      if (file.size > 500 * 1024 * 1024) {
+        setUploadError("Video boyutu en fazla 500MB olabilir.")
         return
       }
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("type", "video")
-      const res = await fetch("/api/upload", { method: "POST", body: fd })
-      const data = await res.json()
-      if (!res.ok) {
-        setUploadError(data.error || "Video yükleme hatası")
-        return
-      }
-      setFormData((prev) => ({ ...prev, video: data.url }))
+      const timestamp = Date.now()
+      const ext = file.name.split(".").pop() || "mp4"
+      const pathname = `videos/${timestamp}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+
+      const blob = await upload(pathname, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      })
+
+      setFormData((prev) => ({ ...prev, video: blob.url }))
     } catch {
       setUploadError("Video yüklenirken bir hata oluştu.")
     } finally {
@@ -834,7 +835,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                         {isUploadingPhoto ? "Yükleniyor..." : "Fotoğraf Ekle"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        JPG, PNG veya WebP - Maks. 5MB
+                        JPG, PNG veya WebP - Maks. 50MB
                       </p>
                     </div>
                   </button>
@@ -887,7 +888,7 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                         {isUploadingVideo ? "Video Yükleniyor..." : "Video Ekle"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        MP4 veya WebM - Maks. 50MB
+                        MP4 veya WebM - Maks. 500MB
                       </p>
                     </div>
                   </button>
