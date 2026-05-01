@@ -34,7 +34,7 @@ export function OfferModal({ isOpen, onClose, listingId, listingTitle, currentPr
 
     setIsSubmitting(true)
 
-    const result = sendOffer({
+    const result = await sendOffer({
       listingId,
       listingTitle,
       offerAmount: Number.parseInt(offerAmount.replace(/\D/g, "")),

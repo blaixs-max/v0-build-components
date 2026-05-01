@@ -26,6 +26,7 @@ import { BottomNavigation } from "@/components/bottom-navigation"
 import { SiteHeader } from "@/components/site-header"
 import { PhoneVerificationModal } from "@/components/phone-verification-modal"
 import { TrustScoreCard } from "@/components/trust-score-card"
+import { EnterpriseNumberManager } from "@/components/enterprise-number-manager"
 
 export default function ProfilPage() {
   const router = useRouter()
@@ -46,8 +47,8 @@ export default function ProfilPage() {
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     router.push("/")
   }
 
@@ -160,6 +161,11 @@ export default function ProfilPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Enterprise Numbers */}
+      <div className="px-4 mt-4">
+        <EnterpriseNumberManager />
       </div>
 
       {/* Menu Items */}

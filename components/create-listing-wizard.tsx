@@ -1,14 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
-import { ArrowLeft, Camera, X, Check, Video } from "lucide-react"
+import { ArrowLeft, Camera, X, Check, Video, Building2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { LocationSelector } from "@/components/location-selector"
 import { getCityByValue } from "@/lib/turkey-locations"
+import { useUser } from "@/contexts/user-context"
+import { validateEnterpriseNo, formatEnterpriseDisplay } from "@/lib/enterprise-validation"
+import { upload } from "@vercel/blob/client"
 
 type Category = "buyukbas" | "kucukbas" | null
 type Gender = "disi" | "erkek"
@@ -30,6 +33,10 @@ export interface ListingFormData {
   video: string | null
   city: string
   district: string
+  earTag: string
+  enterpriseNo: string
+  enterpriseLabel: string
+  description: string
 }
 
 const initialFormData: ListingFormData = {
@@ -47,6 +54,10 @@ const initialFormData: ListingFormData = {
   video: null,
   city: "",
   district: "",
+  earTag: "",
+  enterpriseNo: "",
+  enterpriseLabel: "",
+  description: "",
 }
 
 const BUYUKBAS_BREEDS = [
@@ -75,6 +86,14 @@ interface CreateListingWizardProps {
 export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardProps) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<ListingFormData>(initialFormData)
+  const [enterpriseMode, setEnterpriseMode] = useState<"saved" | "manual">("saved")
+  const [enterpriseError, setEnterpriseError] = useState("")
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
+  const { enterpriseNumbers, isLoggedIn } = useUser()
 
   const handleCategorySelect = (category: Category) => {
     setFormData({ ...initialFormData, category })
@@ -106,22 +125,70 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
     }))
   }
 
-  const handlePhotoUpload = () => {
-    const demoPhotos = ["/simental-bull-cattle.jpg", "/simental-cow-cattle.jpg"]
-    if (formData.photos.length < 5) {
-      setFormData((prev) => ({
-        ...prev,
-        photos: [...prev.photos, demoPhotos[prev.photos.length % 2]],
-      }))
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadError("")
+    setIsUploadingPhoto(true)
+
+    try {
+      const remainingSlots = 5 - formData.photos.length
+      const filesToUpload = Array.from(files).slice(0, remainingSlots)
+
+      for (const file of filesToUpload) {
+        if (file.size > 50 * 1024 * 1024) {
+          setUploadError(`${file.name}: Maksimum 50MB olabilir.`)
+          continue
+        }
+        const timestamp = Date.now()
+        const ext = file.name.split(".").pop() || "jpg"
+        const pathname = `photos/${timestamp}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+
+        const blob = await upload(pathname, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        })
+
+        setFormData((prev) => ({
+          ...prev,
+          photos: [...prev.photos, blob.url],
+        }))
+      }
+    } catch {
+      setUploadError("Fotoğraf yüklenirken bir hata oluştu.")
+    } finally {
+      setIsUploadingPhoto(false)
+      if (photoInputRef.current) photoInputRef.current.value = ""
     }
   }
 
-  const handleVideoUpload = () => {
-    const demoVideo = "https://www.w3schools.com/html/mov_bbb.mp4"
-    setFormData((prev) => ({
-      ...prev,
-      video: demoVideo,
-    }))
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError("")
+    setIsUploadingVideo(true)
+
+    try {
+      if (file.size > 500 * 1024 * 1024) {
+        setUploadError("Video boyutu en fazla 500MB olabilir.")
+        return
+      }
+      const timestamp = Date.now()
+      const ext = file.name.split(".").pop() || "mp4"
+      const pathname = `videos/${timestamp}-${Math.random().toString(36).substring(2, 8)}.${ext}`
+
+      const blob = await upload(pathname, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      })
+
+      setFormData((prev) => ({ ...prev, video: blob.url }))
+    } catch {
+      setUploadError("Video yüklenirken bir hata oluştu.")
+    } finally {
+      setIsUploadingVideo(false)
+      if (videoInputRef.current) videoInputRef.current.value = ""
+    }
   }
 
   const removeVideo = () => {
@@ -362,6 +429,91 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 ))}
               </div>
             </div>
+
+            {/* İşletme Numarası (Opsiyonel) */}
+            {isLoggedIn && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">İşletme Numarası (Opsiyonel)</label>
+
+                {enterpriseNumbers.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "saved" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "saved" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("saved"); setEnterpriseError("") }}
+                    >
+                      Kayıtlı
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "manual" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "manual" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("manual"); setEnterpriseError("") }}
+                    >
+                      Manuel Gir
+                    </Button>
+                  </div>
+                )}
+
+                {(enterpriseMode === "saved" && enterpriseNumbers.length > 0) ? (
+                  <div className="space-y-2">
+                    {enterpriseNumbers.map((en) => (
+                      <button
+                        key={en.id}
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-3 w-full p-3 rounded-lg border-2 transition-all text-left",
+                          formData.enterpriseNo === en.enterpriseNo
+                            ? "border-meradan-green bg-meradan-green/5"
+                            : "border-border hover:border-meradan-green/50",
+                        )}
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          enterpriseNo: prev.enterpriseNo === en.enterpriseNo ? "" : en.enterpriseNo,
+                          enterpriseLabel: prev.enterpriseNo === en.enterpriseNo ? "" : (en.label || ""),
+                        }))}
+                      >
+                        <Building2 className="h-5 w-5 text-meradan-green shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-sm font-medium truncate">
+                            {formatEnterpriseDisplay(en.enterpriseNo, en.label)}
+                          </p>
+                        </div>
+                        {formData.enterpriseNo === en.enterpriseNo && (
+                          <Check className="h-5 w-5 text-meradan-green shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="TR0612345"
+                      value={formData.enterpriseNo}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase()
+                        setFormData((prev) => ({ ...prev, enterpriseNo: val }))
+                        setEnterpriseError("")
+                        if (val && !validateEnterpriseNo(val).valid) {
+                          setEnterpriseError(validateEnterpriseNo(val).error || "")
+                        }
+                      }}
+                      className="font-mono"
+                      maxLength={14}
+                    />
+                    {enterpriseError && (
+                      <p className="text-xs text-destructive">{enterpriseError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {"Format: TR + 2 hane il kodu + 1-10 rakam"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -494,6 +646,91 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 ))}
               </div>
             </div>
+
+            {/* İşletme Numarası (Opsiyonel) */}
+            {isLoggedIn && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">İşletme Numarası (Opsiyonel)</label>
+
+                {enterpriseNumbers.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "saved" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "saved" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("saved"); setEnterpriseError("") }}
+                    >
+                      Kayıtlı
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "manual" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "manual" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("manual"); setEnterpriseError("") }}
+                    >
+                      Manuel Gir
+                    </Button>
+                  </div>
+                )}
+
+                {(enterpriseMode === "saved" && enterpriseNumbers.length > 0) ? (
+                  <div className="space-y-2">
+                    {enterpriseNumbers.map((en) => (
+                      <button
+                        key={en.id}
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-3 w-full p-3 rounded-lg border-2 transition-all text-left",
+                          formData.enterpriseNo === en.enterpriseNo
+                            ? "border-meradan-green bg-meradan-green/5"
+                            : "border-border hover:border-meradan-green/50",
+                        )}
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          enterpriseNo: prev.enterpriseNo === en.enterpriseNo ? "" : en.enterpriseNo,
+                          enterpriseLabel: prev.enterpriseNo === en.enterpriseNo ? "" : (en.label || ""),
+                        }))}
+                      >
+                        <Building2 className="h-5 w-5 text-meradan-green shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-sm font-medium truncate">
+                            {formatEnterpriseDisplay(en.enterpriseNo, en.label)}
+                          </p>
+                        </div>
+                        {formData.enterpriseNo === en.enterpriseNo && (
+                          <Check className="h-5 w-5 text-meradan-green shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="TR0612345"
+                      value={formData.enterpriseNo}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase()
+                        setFormData((prev) => ({ ...prev, enterpriseNo: val }))
+                        setEnterpriseError("")
+                        if (val && !validateEnterpriseNo(val).valid) {
+                          setEnterpriseError(validateEnterpriseNo(val).error || "")
+                        }
+                      }}
+                      className="font-mono"
+                      maxLength={14}
+                    />
+                    {enterpriseError && (
+                      <p className="text-xs text-destructive">{enterpriseError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {"Format: TR + 2 hane il kodu + 1-10 rakam"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -501,6 +738,12 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
         {step === 3 && (
           <div className="space-y-6">
             <h2 className="text-xl font-bold text-foreground">Fiyat ve Medya</h2>
+
+            {uploadError && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive">{uploadError}</p>
+              </div>
+            )}
 
             {/* Seçilen Konum Özeti */}
             {getLocationDisplay() && (
@@ -565,19 +808,38 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
               )}
 
               {formData.photos.length < 5 && (
-                <button
-                  type="button"
-                  onClick={handlePhotoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-green/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Fotoğraf Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">En az 1, en fazla 5 fotoğraf</p>
-                  </div>
-                </button>
+                <>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    multiple
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-green/50 hover:bg-muted/50 transition-all disabled:opacity-50"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                      {isUploadingPhoto ? (
+                        <Loader2 className="h-8 w-8 text-meradan-green animate-spin" />
+                      ) : (
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-foreground">
+                        {isUploadingPhoto ? "Yükleniyor..." : "Fotoğraf Ekle"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        JPG, PNG veya WebP - Maks. 50MB
+                      </p>
+                    </div>
+                  </button>
+                </>
               )}
             </div>
 
@@ -600,19 +862,37 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                   </span>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleVideoUpload}
-                  className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-orange/50 hover:bg-muted/50 transition-all"
-                >
-                  <div className="w-16 h-16 rounded-full bg-meradan-orange/10 flex items-center justify-center">
-                    <Video className="h-8 w-8 text-meradan-orange" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-foreground">Video Ekle</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hayvanın videosunu ekleyin (Maks. 30 sn)</p>
-                  </div>
-                </button>
+                <>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    className="hidden"
+                    onChange={handleVideoUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploadingVideo}
+                    className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-meradan-orange/50 hover:bg-muted/50 transition-all disabled:opacity-50"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-meradan-orange/10 flex items-center justify-center">
+                      {isUploadingVideo ? (
+                        <Loader2 className="h-8 w-8 text-meradan-orange animate-spin" />
+                      ) : (
+                        <Video className="h-8 w-8 text-meradan-orange" />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="font-medium text-foreground">
+                        {isUploadingVideo ? "Video Yükleniyor..." : "Video Ekle"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        MP4 veya WebM - Maks. 500MB
+                      </p>
+                    </div>
+                  </button>
+                </>
               )}
             </div>
           </div>
