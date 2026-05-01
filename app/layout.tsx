@@ -5,7 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { UserProvider } from "@/contexts/user-context"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const _inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Meradan - Türkiye'nin Hayvan Pazarı",

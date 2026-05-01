@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ArrowLeft,
   Heart,
@@ -18,26 +18,79 @@ import {
   ChevronRight,
   Video,
   HandCoins,
+  Building2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { getListingById } from "@/lib/listings-data"
 import { useUser } from "@/contexts/user-context"
 import { OfferModal } from "@/components/offer-modal"
 import { OffersList } from "@/components/offers-list"
 import { SiteHeader } from "@/components/site-header"
+import { formatEnterpriseDisplay } from "@/lib/enterprise-validation"
+
+interface ListingDetail {
+  id: string
+  title: string
+  animalType: string
+  breed: string
+  age: string
+  weight: string
+  gender: string
+  price: number
+  priceType: string
+  location: string
+  city: string
+  description: string
+  imageUrl: string
+  images: string[]
+  earTag: string
+  enterpriseNo: string | null
+  enterpriseLabel: string | null
+  views: number
+  createdAt: string
+  userId: string
+  sellerName: string
+  sellerPhone: string
+  sellerVerified: boolean
+  isFavorite: boolean
+  videoUrl?: string | null
+}
 
 export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { toggleFavorite, isFavorite, isMyListing, getCreatedListingById } = useUser()
+  const { toggleFavorite, isFavorite, isMyListing, user } = useUser()
   const [showVideo, setShowVideo] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showOfferModal, setShowOfferModal] = useState(false)
+  const [listing, setListing] = useState<ListingDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const listing = getListingById(params.id as string) ?? getCreatedListingById(params.id as string)
+  useEffect(() => {
+    const fetchListing = async () => {
+      try {
+        const res = await fetch(`/api/listings/${params.id}`)
+        const data = await res.json()
+        if (data.listing) {
+          setListing(data.listing)
+        }
+      } catch {
+        // silently fail
+      }
+      setIsLoading(false)
+    }
+    fetchListing()
+  }, [params.id])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Yükleniyor...</div>
+      </div>
+    )
+  }
 
   if (!listing) {
     return (
@@ -57,7 +110,7 @@ export default function ListingDetailPage() {
   }
 
   const isListingFavorite = isFavorite(listing.id)
-  const isOwner = isMyListing(listing.id)
+  const isOwner = user?.id === listing.userId || isMyListing(listing.id)
 
   const images = listing.images && listing.images.length > 0 ? listing.images : [listing.imageUrl]
 
@@ -256,6 +309,17 @@ export default function ListingDetailPage() {
                 <span className="text-xs">Kulak Küpesi</span>
               </div>
               <p className="font-medium text-sm">{listing.earTag}</p>
+            </div>
+          )}
+          {listing.enterpriseNo && (
+            <div className="bg-muted/50 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Building2 className="h-4 w-4" />
+                <span className="text-xs">İşletme No</span>
+              </div>
+              <p className="font-mono font-medium text-sm">
+                {formatEnterpriseDisplay(listing.enterpriseNo, listing.enterpriseLabel)}
+              </p>
             </div>
           )}
           {listing.breed && (

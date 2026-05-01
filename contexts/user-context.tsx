@@ -1,7 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { Listing as DataListing } from "@/lib/listings-data"
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 
 export interface UserBadges {
   phoneVerified: boolean
@@ -38,7 +37,15 @@ export interface Offer {
   completedDate?: string
 }
 
+export interface EnterpriseNumber {
+  id: string
+  enterpriseNo: string
+  label: string | null
+  createdAt: string
+}
+
 export interface User {
+  id: string
   firstName: string
   lastName: string
   phone: string
@@ -59,21 +66,15 @@ export function calculateUserLevel(badges?: UserBadges): UserLevel {
 
   const { phoneVerified, identityVerified, fastResponder, successfulSales } = badges
 
-  // Premium: Tüm rozetler + 50+ satış
   if (phoneVerified && identityVerified && fastResponder && successfulSales >= 50) {
     return "premium"
   }
-
-  // Uzman: Kimlik doğrulanmış + 10+ satış
   if (identityVerified && successfulSales >= 10) {
     return "expert"
   }
-
-  // Güvenilir: Telefon doğrulanmış
   if (phoneVerified) {
     return "trusted"
   }
-
   return "new"
 }
 
@@ -117,25 +118,31 @@ export function getLevelInfo(level: UserLevel) {
 
 interface UserContextType {
   user: User | null
-  login: (userData: User) => void
-  logout: () => void
+  login: (phone: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (data: { firstName: string; lastName: string; phone: string; password: string; location?: string }) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
   updateUser: (userData: Partial<User>) => void
   updateBadges: (badges: Partial<UserBadges>) => void
   isLoggedIn: boolean
   isLoading: boolean
   favorites: string[]
-  toggleFavorite: (listingId: string) => void
+  toggleFavorite: (listingId: string) => Promise<void>
   isFavorite: (listingId: string) => boolean
-  sendOffer: (offer: Omit<Offer, "id" | "createdAt" | "status" | "offererName" | "offererId">) => boolean
+  sendOffer: (offer: { listingId: string; listingTitle: string; offerAmount: number; message?: string }) => Promise<boolean>
   getOffersForListing: (listingId: string) => Offer[]
   getMyOffers: () => Offer[]
   getReceivedOffers: () => Offer[]
   updateOfferStatus: (offerId: string, status: Offer["status"]) => void
   isMyListing: (listingId: string) => boolean
   addMyListing: (listingId: string) => void
-  userCreatedListings: DataListing[]
-  addCreatedListing: (listing: DataListing) => void
-  getCreatedListingById: (id: string) => DataListing | undefined
+  userCreatedListings: Listing[]
+  addCreatedListing: (listing: Listing) => void
+  getCreatedListingById: (id: string) => Listing | undefined
+  // Enterprise numbers
+  enterpriseNumbers: EnterpriseNumber[]
+  loadEnterpriseNumbers: () => Promise<void>
+  addEnterpriseNumber: (enterpriseNo: string, label?: string) => Promise<{ success: boolean; error?: string }>
+  deleteEnterpriseNumber: (id: string) => Promise<{ success: boolean; error?: string }>
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -145,80 +152,200 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [favorites, setFavorites] = useState<string[]>([])
   const [allOffers, setAllOffers] = useState<Offer[]>([])
-  const [userCreatedListings, setUserCreatedListings] = useState<DataListing[]>([])
+  const [userCreatedListings, setUserCreatedListings] = useState<Listing[]>([])
+  const [enterpriseNumbers, setEnterpriseNumbers] = useState<EnterpriseNumber[]>([])
 
+  // Check session on mount
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("meradan_user")
-      const savedFavorites = localStorage.getItem("meradan_favorites")
-      const savedOffers = localStorage.getItem("meradan_offers")
-      const savedCreatedListings = localStorage.getItem("meradan_created_listings")
-
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites))
-      }
-
-      if (savedOffers) {
-        setAllOffers(JSON.parse(savedOffers))
-      }
-
-      if (savedCreatedListings) {
-        setUserCreatedListings(JSON.parse(savedCreatedListings))
-      }
-
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser)
-        if (!parsed.badges) {
-          parsed.badges = {
-            phoneVerified: parsed.isVerified || false,
-            identityVerified: false,
-            fastResponder: false,
-            successfulSales: 0,
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/auth/me")
+        const data = await res.json()
+        if (data.user) {
+          const badges: UserBadges = {
+            phoneVerified: data.user.phoneVerified || false,
+            identityVerified: data.user.identityVerified || false,
+            fastResponder: data.user.fastResponder || false,
+            successfulSales: data.user.successfulSales || 0,
           }
+          setUser({
+            id: data.user.id,
+            firstName: data.user.firstName,
+            lastName: data.user.lastName,
+            phone: data.user.phone,
+            location: data.user.location,
+            isVerified: data.user.isVerified,
+            badges,
+            level: calculateUserLevel(badges),
+            memberSince: data.user.memberSince,
+            responseRate: data.user.responseRate,
+            myListings: [],
+          })
         }
-        if (!parsed.memberSince) {
-          parsed.memberSince = new Date().toISOString()
-        }
-        if (!parsed.myListings) {
-          parsed.myListings = []
-        }
-        if (parsed.favorites) {
-          setFavorites(parsed.favorites)
-        }
-        parsed.level = calculateUserLevel(parsed.badges)
-        setUser(parsed)
+      } catch {
+        // Session invalid or server error
       }
-    } catch {
-      // localStorage verisi bozulmuşsa sıfırla
-      localStorage.removeItem("meradan_user")
-      localStorage.removeItem("meradan_favorites")
-      localStorage.removeItem("meradan_offers")
-      localStorage.removeItem("meradan_created_listings")
+      setIsLoading(false)
     }
-    setIsLoading(false)
+    checkSession()
   }, [])
 
-  const login = (userData: User) => {
-    const newUser = {
-      ...userData,
-      badges: userData.badges || {
+  // Load favorites when user changes
+  useEffect(() => {
+    if (user) {
+      fetch("/api/favorites")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.favorites) {
+            setFavorites(data.favorites.map((f: { id: string }) => f.id))
+          }
+        })
+        .catch(() => {})
+    } else {
+      setFavorites([])
+    }
+  }, [user?.id])
+
+  // Load offers when user changes
+  useEffect(() => {
+    if (user) {
+      fetch("/api/offers")
+        .then((res) => res.json())
+        .then((data) => {
+          const offers: Offer[] = []
+          if (data.received) {
+            for (const o of data.received) {
+              offers.push({
+                id: o.id,
+                listingId: o.listingId,
+                listingTitle: o.listingTitle,
+                offerAmount: o.amount,
+                offererName: o.buyerName,
+                offererId: o.buyerPhone || "",
+                status: o.status,
+                createdAt: o.createdAt,
+                message: o.message,
+              })
+            }
+          }
+          if (data.sent) {
+            for (const o of data.sent) {
+              offers.push({
+                id: o.id,
+                listingId: o.listingId,
+                listingTitle: o.listingTitle,
+                offerAmount: o.amount,
+                offererName: user.firstName + " " + user.lastName,
+                offererId: user.phone,
+                status: o.status,
+                createdAt: o.createdAt,
+                message: o.message,
+              })
+            }
+          }
+          setAllOffers(offers)
+        })
+        .catch(() => {})
+    } else {
+      setAllOffers([])
+    }
+  }, [user?.id, user?.firstName, user?.lastName, user?.phone])
+
+  const login = async (phone: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, password }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        return { success: false, error: data.error }
+      }
+
+      const u = data.user
+      const badges: UserBadges = {
         phoneVerified: false,
         identityVerified: false,
         fastResponder: false,
         successfulSales: 0,
-      },
-      memberSince: userData.memberSince || new Date().toISOString(),
-      responseRate: userData.responseRate || 0,
-      favorites: favorites,
+      }
+      setUser({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: u.phone,
+        location: u.location,
+        badges,
+        level: calculateUserLevel(badges),
+        memberSince: new Date().toISOString(),
+        responseRate: 0,
+        myListings: [],
+      })
+
+      return { success: true }
+    } catch {
+      return { success: false, error: "Bağlantı hatası oluştu." }
     }
-    newUser.level = calculateUserLevel(newUser.badges)
-    setUser(newUser)
-    localStorage.setItem("meradan_user", JSON.stringify(newUser))
   }
 
-  const logout = () => {
+  const register = async (data: {
+    firstName: string
+    lastName: string
+    phone: string
+    password: string
+    location?: string
+  }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      const result = await res.json()
+
+      if (!res.ok) {
+        return { success: false, error: result.error }
+      }
+
+      const u = result.user
+      const badges: UserBadges = {
+        phoneVerified: false,
+        identityVerified: false,
+        fastResponder: false,
+        successfulSales: 0,
+      }
+      setUser({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        phone: u.phone,
+        location: u.location,
+        badges,
+        level: calculateUserLevel(badges),
+        memberSince: new Date().toISOString(),
+        responseRate: 0,
+        myListings: [],
+      })
+
+      return { success: true }
+    } catch {
+      return { success: false, error: "Bağlantı hatası oluştu." }
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+    } catch {
+      // ignore
+    }
     setUser(null)
-    localStorage.removeItem("meradan_user")
+    setFavorites([])
+    setAllOffers([])
+    setEnterpriseNumbers([])
+    setUserCreatedListings([])
   }
 
   const updateUser = (userData: Partial<User>) => {
@@ -229,7 +356,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
       updatedUser.level = calculateUserLevel(updatedUser.badges)
       setUser(updatedUser)
-      localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
     }
   }
 
@@ -242,51 +368,73 @@ export function UserProvider({ children }: { children: ReactNode }) {
         level: calculateUserLevel(updatedBadges),
       }
       setUser(updatedUser)
-      localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
     }
   }
 
-  const toggleFavorite = (listingId: string) => {
-    setFavorites((prev) => {
-      const newFavorites = prev.includes(listingId) ? prev.filter((id) => id !== listingId) : [...prev, listingId]
+  const toggleFavorite = async (listingId: string) => {
+    if (!user) return
 
-      localStorage.setItem("meradan_favorites", JSON.stringify(newFavorites))
+    try {
+      const res = await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId }),
+      })
+      const data = await res.json()
 
-      if (user) {
-        const updatedUser = { ...user, favorites: newFavorites }
-        setUser(updatedUser)
-        localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
+      if (data.isFavorite) {
+        setFavorites((prev) => [...prev, listingId])
+      } else {
+        setFavorites((prev) => prev.filter((id) => id !== listingId))
       }
-
-      return newFavorites
-    })
+    } catch {
+      // Silently fail
+    }
   }
 
   const isFavorite = (listingId: string) => {
     return favorites.includes(listingId)
   }
 
-  const sendOffer = (offerData: Omit<Offer, "id" | "createdAt" | "status" | "offererName" | "offererId">): boolean => {
-    if (!user || !user.isVerified) {
+  const sendOffer = async (offerData: {
+    listingId: string
+    listingTitle: string
+    offerAmount: number
+    message?: string
+  }): Promise<boolean> => {
+    if (!user) return false
+
+    try {
+      const res = await fetch("/api/offers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingId: offerData.listingId,
+          amount: offerData.offerAmount,
+          message: offerData.message,
+        }),
+      })
+
+      if (!res.ok) return false
+
+      // Add to local state
+      const result = await res.json()
+      const newOffer: Offer = {
+        id: result.id,
+        listingId: offerData.listingId,
+        listingTitle: offerData.listingTitle,
+        offerAmount: offerData.offerAmount,
+        offererName: `${user.firstName} ${user.lastName}`,
+        offererId: user.phone,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        message: offerData.message,
+      }
+      setAllOffers((prev) => [...prev, newOffer])
+      return true
+    } catch {
       return false
     }
-
-    const newOffer: Offer = {
-      ...offerData,
-      id: `offer_${Date.now()}`,
-      offererName: `${user.firstName} ${user.lastName}`,
-      offererId: user.phone,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    }
-
-    setAllOffers((prev) => {
-      const updated = [...prev, newOffer]
-      localStorage.setItem("meradan_offers", JSON.stringify(updated))
-      return updated
-    })
-
-    return true
   }
 
   const getOffersForListing = (listingId: string): Offer[] => {
@@ -304,26 +452,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   const updateOfferStatus = (offerId: string, status: Offer["status"]) => {
-    setAllOffers((prev) => {
-      const updated = prev.map((offer) => {
+    setAllOffers((prev) =>
+      prev.map((offer) => {
         if (offer.id === offerId) {
           const updates: Partial<Offer> = { status }
-          if (status === "paid") {
-            updates.paymentDate = new Date().toISOString()
-          }
-          if (status === "delivered") {
-            updates.deliveryDate = new Date().toISOString()
-          }
-          if (status === "completed") {
-            updates.completedDate = new Date().toISOString()
-          }
+          if (status === "paid") updates.paymentDate = new Date().toISOString()
+          if (status === "delivered") updates.deliveryDate = new Date().toISOString()
+          if (status === "completed") updates.completedDate = new Date().toISOString()
           return { ...offer, ...updates }
         }
         return offer
       })
-      localStorage.setItem("meradan_offers", JSON.stringify(updated))
-      return updated
-    })
+    )
   }
 
   const isMyListing = (listingId: string): boolean => {
@@ -333,26 +473,80 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const addMyListing = (listingId: string) => {
     if (user) {
-      const updatedUser = {
+      setUser({
         ...user,
         myListings: [...(user.myListings || []), listingId],
-      }
-      setUser(updatedUser)
-      localStorage.setItem("meradan_user", JSON.stringify(updatedUser))
+      })
     }
   }
 
-  const addCreatedListing = (listing: DataListing) => {
-    setUserCreatedListings((prev) => {
-      const updated = [listing, ...prev]
-      localStorage.setItem("meradan_created_listings", JSON.stringify(updated))
-      return updated
-    })
+  const addCreatedListing = (listing: Listing) => {
+    setUserCreatedListings((prev) => [listing, ...prev])
   }
 
-  const getCreatedListingById = (id: string): DataListing | undefined => {
+  const getCreatedListingById = (id: string): Listing | undefined => {
     return userCreatedListings.find((l) => l.id === id)
   }
+
+  // Enterprise number functions
+  const loadEnterpriseNumbers = useCallback(async () => {
+    if (!user) return
+    try {
+      const res = await fetch("/api/enterprise-numbers")
+      const data = await res.json()
+      if (data.enterpriseNumbers) {
+        setEnterpriseNumbers(data.enterpriseNumbers)
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [user])
+
+  const addEnterpriseNumber = async (
+    enterpriseNo: string,
+    label?: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch("/api/enterprise-numbers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enterpriseNo, label }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        return { success: false, error: data.error }
+      }
+
+      setEnterpriseNumbers((prev) => [data.enterpriseNumber, ...prev])
+      return { success: true }
+    } catch {
+      return { success: false, error: "Bağlantı hatası oluştu." }
+    }
+  }
+
+  const deleteEnterpriseNumber = async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`/api/enterprise-numbers/${id}`, { method: "DELETE" })
+
+      if (!res.ok) {
+        const data = await res.json()
+        return { success: false, error: data.error }
+      }
+
+      setEnterpriseNumbers((prev) => prev.filter((en) => en.id !== id))
+      return { success: true }
+    } catch {
+      return { success: false, error: "Bağlantı hatası oluştu." }
+    }
+  }
+
+  // Load enterprise numbers when user changes
+  useEffect(() => {
+    if (user) {
+      loadEnterpriseNumbers()
+    }
+  }, [user, loadEnterpriseNumbers])
 
   if (isLoading) {
     return (
@@ -374,6 +568,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        register,
         logout,
         updateUser,
         updateBadges,
@@ -392,6 +587,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         userCreatedListings,
         addCreatedListing,
         getCreatedListingById,
+        enterpriseNumbers,
+        loadEnterpriseNumbers,
+        addEnterpriseNumber,
+        deleteEnterpriseNumber,
       }}
     >
       {children}

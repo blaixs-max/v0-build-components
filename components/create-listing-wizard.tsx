@@ -2,13 +2,15 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { ArrowLeft, Camera, X, Check, Video } from "lucide-react"
+import { ArrowLeft, Camera, X, Check, Video, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { LocationSelector } from "@/components/location-selector"
 import { getCityByValue } from "@/lib/turkey-locations"
+import { useUser } from "@/contexts/user-context"
+import { validateEnterpriseNo, formatEnterpriseDisplay } from "@/lib/enterprise-validation"
 
 type Category = "buyukbas" | "kucukbas" | null
 type Gender = "disi" | "erkek"
@@ -30,6 +32,10 @@ export interface ListingFormData {
   video: string | null
   city: string
   district: string
+  earTag: string
+  enterpriseNo: string
+  enterpriseLabel: string
+  description: string
 }
 
 const initialFormData: ListingFormData = {
@@ -47,6 +53,10 @@ const initialFormData: ListingFormData = {
   video: null,
   city: "",
   district: "",
+  earTag: "",
+  enterpriseNo: "",
+  enterpriseLabel: "",
+  description: "",
 }
 
 const BUYUKBAS_BREEDS = [
@@ -75,6 +85,9 @@ interface CreateListingWizardProps {
 export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardProps) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<ListingFormData>(initialFormData)
+  const [enterpriseMode, setEnterpriseMode] = useState<"saved" | "manual">("saved")
+  const [enterpriseError, setEnterpriseError] = useState("")
+  const { enterpriseNumbers, isLoggedIn } = useUser()
 
   const handleCategorySelect = (category: Category) => {
     setFormData({ ...initialFormData, category })
@@ -362,6 +375,91 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 ))}
               </div>
             </div>
+
+            {/* İşletme Numarası (Opsiyonel) */}
+            {isLoggedIn && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">İşletme Numarası (Opsiyonel)</label>
+
+                {enterpriseNumbers.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "saved" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "saved" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("saved"); setEnterpriseError("") }}
+                    >
+                      Kayıtlı
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "manual" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "manual" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("manual"); setEnterpriseError("") }}
+                    >
+                      Manuel Gir
+                    </Button>
+                  </div>
+                )}
+
+                {(enterpriseMode === "saved" && enterpriseNumbers.length > 0) ? (
+                  <div className="space-y-2">
+                    {enterpriseNumbers.map((en) => (
+                      <button
+                        key={en.id}
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-3 w-full p-3 rounded-lg border-2 transition-all text-left",
+                          formData.enterpriseNo === en.enterpriseNo
+                            ? "border-meradan-green bg-meradan-green/5"
+                            : "border-border hover:border-meradan-green/50",
+                        )}
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          enterpriseNo: prev.enterpriseNo === en.enterpriseNo ? "" : en.enterpriseNo,
+                          enterpriseLabel: prev.enterpriseNo === en.enterpriseNo ? "" : (en.label || ""),
+                        }))}
+                      >
+                        <Building2 className="h-5 w-5 text-meradan-green shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-sm font-medium truncate">
+                            {formatEnterpriseDisplay(en.enterpriseNo, en.label)}
+                          </p>
+                        </div>
+                        {formData.enterpriseNo === en.enterpriseNo && (
+                          <Check className="h-5 w-5 text-meradan-green shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="TR0612345"
+                      value={formData.enterpriseNo}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase()
+                        setFormData((prev) => ({ ...prev, enterpriseNo: val }))
+                        setEnterpriseError("")
+                        if (val && !validateEnterpriseNo(val).valid) {
+                          setEnterpriseError(validateEnterpriseNo(val).error || "")
+                        }
+                      }}
+                      className="font-mono"
+                      maxLength={14}
+                    />
+                    {enterpriseError && (
+                      <p className="text-xs text-destructive">{enterpriseError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {"Format: TR + 2 hane il kodu + 1-10 rakam"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -494,6 +592,91 @@ export function CreateListingWizard({ onClose, onSubmit }: CreateListingWizardPr
                 ))}
               </div>
             </div>
+
+            {/* İşletme Numarası (Opsiyonel) */}
+            {isLoggedIn && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">İşletme Numarası (Opsiyonel)</label>
+
+                {enterpriseNumbers.length > 0 && (
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "saved" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "saved" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("saved"); setEnterpriseError("") }}
+                    >
+                      Kayıtlı
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={enterpriseMode === "manual" ? "default" : "outline"}
+                      className={cn(enterpriseMode === "manual" && "bg-meradan-green hover:bg-meradan-green/90")}
+                      onClick={() => { setEnterpriseMode("manual"); setEnterpriseError("") }}
+                    >
+                      Manuel Gir
+                    </Button>
+                  </div>
+                )}
+
+                {(enterpriseMode === "saved" && enterpriseNumbers.length > 0) ? (
+                  <div className="space-y-2">
+                    {enterpriseNumbers.map((en) => (
+                      <button
+                        key={en.id}
+                        type="button"
+                        className={cn(
+                          "flex items-center gap-3 w-full p-3 rounded-lg border-2 transition-all text-left",
+                          formData.enterpriseNo === en.enterpriseNo
+                            ? "border-meradan-green bg-meradan-green/5"
+                            : "border-border hover:border-meradan-green/50",
+                        )}
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          enterpriseNo: prev.enterpriseNo === en.enterpriseNo ? "" : en.enterpriseNo,
+                          enterpriseLabel: prev.enterpriseNo === en.enterpriseNo ? "" : (en.label || ""),
+                        }))}
+                      >
+                        <Building2 className="h-5 w-5 text-meradan-green shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-sm font-medium truncate">
+                            {formatEnterpriseDisplay(en.enterpriseNo, en.label)}
+                          </p>
+                        </div>
+                        {formData.enterpriseNo === en.enterpriseNo && (
+                          <Check className="h-5 w-5 text-meradan-green shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="TR0612345"
+                      value={formData.enterpriseNo}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase()
+                        setFormData((prev) => ({ ...prev, enterpriseNo: val }))
+                        setEnterpriseError("")
+                        if (val && !validateEnterpriseNo(val).valid) {
+                          setEnterpriseError(validateEnterpriseNo(val).error || "")
+                        }
+                      }}
+                      className="font-mono"
+                      maxLength={14}
+                    />
+                    {enterpriseError && (
+                      <p className="text-xs text-destructive">{enterpriseError}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {"Format: TR + 2 hane il kodu + 1-10 rakam"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
