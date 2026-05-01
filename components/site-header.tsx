@@ -38,7 +38,7 @@ export function SiteHeader({ onCreateListing }: { onCreateListing?: () => void }
         <nav className="flex items-center gap-2 md:gap-4">
           <Link
             href="/"
-            className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted md:inline-flex"
+            className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted md:inline-flex"
           >
             <Search className="h-4 w-4" />
             <span>Ilan Ara</span>
