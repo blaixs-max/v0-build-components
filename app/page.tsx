@@ -56,7 +56,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<string>("home")
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const { addMyListing, addCreatedListing } = useUser()
+  const { addMyListing, addCreatedListing, toggleFavorite, favorites } = useUser()
 
   const fetchListings = useCallback(async () => {
     try {
@@ -243,6 +243,8 @@ export default function HomePage() {
           <FeaturedListings
             listings={featuredListings}
             viewMode={viewMode}
+            favoriteIds={favorites}
+            onFavoriteClick={toggleFavorite}
             toolbar={
               <ListingToolbar
                 onFilterClick={() => setFilterDrawerOpen(true)}

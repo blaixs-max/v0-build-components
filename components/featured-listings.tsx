@@ -10,6 +10,8 @@ interface FeaturedListingsProps {
   listings: Listing[]
   viewMode?: ViewMode
   toolbar?: ReactNode
+  favoriteIds?: string[]
+  onFavoriteClick?: (id: string) => void
 }
 
 function formatPrice(value: number) {
@@ -58,7 +60,7 @@ function FeaturedListingRow({ listing }: { listing: Listing }) {
   )
 }
 
-export function FeaturedListings({ listings, viewMode = "grid", toolbar }: FeaturedListingsProps) {
+export function FeaturedListings({ listings, viewMode = "grid", toolbar, favoriteIds = [], onFavoriteClick }: FeaturedListingsProps) {
   return (
     <section className="mx-auto w-full max-w-7xl px-6 py-10 lg:px-10">
       {toolbar && <div className="mb-8">{toolbar}</div>}
@@ -85,6 +87,8 @@ export function FeaturedListings({ listings, viewMode = "grid", toolbar }: Featu
               price={listing.price}
               imageUrl={listing.imageUrl}
               videoUrl={listing.videoUrl}
+              isFavorite={favoriteIds.includes(listing.id)}
+              onFavoriteClick={onFavoriteClick}
             />
           ))}
         </div>
